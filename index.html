@@ -186,14 +186,11 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .btn-delete:hover { background:#3a1515; }
 
 /* ── FILING DEADLINES (prominent) ── */
-.filing-deadlines { margin-top:7px; display:flex; flex-direction:column; gap:4px; }
-.filing-dl-row { display:flex; align-items:center; gap:7px; }
-.filing-dl-label { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#fb923c; width:52px; flex-shrink:0; }
+.filing-deadlines { display:flex; flex-direction:column; gap:4px; align-items:flex-end; margin-bottom:6px; }
+.filing-dl-row { display:flex; align-items:center; gap:5px; justify-content:flex-end; }
+.filing-dl-label { font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#fb923c; flex-shrink:0; }
 .filing-dl-value { font-size:.85rem; font-weight:700; }
-.filing-dl-value.overdue { color:#e05c5c; }
-.filing-dl-value.soon { color:#f0a500; }
-.filing-dl-value.ok { color:#e8e8f0; }
-.filing-dl-days { font-size:.75rem; font-weight:500; color:var(--text3); }
+.filing-dl-days { font-size:.72rem; font-weight:500; color:var(--text3); }
 
 /* ── DRAFT DEADLINE FIELD (modal) ── */
 #draft-deadline-row { display:none; }
@@ -719,14 +716,14 @@ function renderTaskCard(t, isFiling) {
     if (t.draft_deadline) {
       rows.push(`<div class="filing-dl-row">
         <span class="filing-dl-label">Draft</span>
-        <span class="filing-dl-value ${dlClass(draftDays)}">${fmtDate(t.draft_deadline)}</span>
+        <span class="filing-dl-value" style="color:#f0a500">${fmtDate(t.draft_deadline)}</span>
         ${draftDays !== null ? `<span class="filing-dl-days">${dlLabel(draftDays)}</span>` : ""}
       </div>`);
     }
     if (t.deadline) {
       rows.push(`<div class="filing-dl-row">
         <span class="filing-dl-label">${t.hard_deadline ? '🔒 Filing' : 'Filing'}</span>
-        <span class="filing-dl-value ${dlClass(filingDays)}">${fmtDate(t.deadline)}</span>
+        <span class="filing-dl-value" style="color:#e05c5c">${fmtDate(t.deadline)}</span>
         ${filingDays !== null ? `<span class="filing-dl-days">${dlLabel(filingDays)}</span>` : ""}
       </div>`);
     }
@@ -778,11 +775,11 @@ function renderTaskCard(t, isFiling) {
           <span class="priority-badge" style="background:${p.bg};color:${p.color}">${t.priority}</span>
           ${deadlineHtml}
         </div>
-        ${filingDeadlinesHtml}
         ${notesHtml}
         ${subtasksHtml}
       </div>
       <div class="task-right" onclick="event.stopPropagation()">
+        ${filingDeadlinesHtml}
         <select class="status-select" data-status-id="${t.id}">
           ${STATUSES.map(s=>`<option${t.status===s?" selected":""}>${s}</option>`).join("")}
         </select>
