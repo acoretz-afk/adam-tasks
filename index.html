@@ -779,10 +779,10 @@ function renderTaskCard(t, isFiling) {
         ${subtasksHtml}
       </div>
       <div class="task-right" onclick="event.stopPropagation()">
-        ${filingDeadlinesHtml}
         <select class="status-select" data-status-id="${t.id}">
           ${STATUSES.map(s=>`<option${t.status===s?" selected":""}>${s}</option>`).join("")}
         </select>
+        ${filingDeadlinesHtml}
         <button class="card-delete-btn" onclick="quickDelete('${t.id}', event)" title="Delete task">✕</button>
       </div>
     </div>
