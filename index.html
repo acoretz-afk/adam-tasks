@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tasks">
+<title>✅ Case Task Manager</title>
+<link rel="icon" href="favicon.ico" type="image/x-icon">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --bg: #0f0f1a;
+  --surface: #1a1a2e;
+  --surface2: #22223a;
+  --surface3: #2a2a45;
+  --border: #2e2e50;
+  --accent: #6c63ff;
+  --accent2: #a78bfa;
+  --text: #e8e8f0;
+  --text2: #a0a0c0;
+  --text3: #6060a0;
+  --red: #e05c5c;
+  --green: #4caf7d;
+  --yellow: #f0a500;
+  --filing-accent: #f97316;
+  --filing-surface: #1e1510;
+  --filing-border: #7c3010;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* ── PASSWORD SCREEN ── */
+#password-screen { display:none; position:fixed; inset:0; background:var(--bg); z-index:9999; align-items:center; justify-content:center; }
+.pw-box { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:40px; width:min(380px,90vw); text-align:center; }
+.pw-box h2 { font-size:1.5rem; margin-bottom:8px; }
+.pw-box p { color:var(--text2); margin-bottom:24px; font-size:.9rem; }
+.pw-input { width:100%; padding:12px 16px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; color:var(--text); font-size:1rem; margin-bottom:12px; outline:none; }
+.pw-input:focus { border-color:var(--accent); }
+.pw-error { color:var(--red); font-size:.85rem; margin-bottom:12px; display:none; }
+.pw-btn { width:100%; padding:12px; background:var(--accent); color:#fff; border:none; border-radius:10px; font-size:1rem; font-weight:600; cursor:pointer; }
+.pw-btn:hover { background:#7c73ff; }
+
+/* ── SETUP SCREEN ── */
+#setup-screen { display:none; position:fixed; inset:0; background:var(--bg); z-index:9998; align-items:center; justify-content:center; }
+.setup-box { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:40px; width:min(480px,90vw); }
+.setup-box h2 { font-size:1.4rem; margin-bottom:8px; }
+.setup-box p { color:var(--text2); margin-bottom:24px; font-size:.9rem; }
+.setup-input { width:100%; padding:11px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; color:var(--text); font-size:.95rem; margin-bottom:12px; outline:none; font-family:inherit; }
+.setup-input:focus { border-color:var(--accent); }
+.setup-btn { width:100%; padding:12px; background:var(--accent); color:#fff; border:none; border-radius:10px; font-size:1rem; font-weight:600; cursor:pointer; margin-top:8px; }
+
+/* ── APP SHELL ── */
+#app { display:none; min-height:100vh; }
+.top-bar { background:var(--surface); border-bottom:1px solid var(--border); padding:14px 20px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+.top-bar-left { display:flex; align-items:center; gap:12px; }
+.app-title { font-size:1.1rem; font-weight:700; color:var(--text); }
+.date-display { font-size:.8rem; color:var(--text3); }
+.top-bar-right { display:flex; align-items:center; gap:10px; }
+.add-task-btn { background:var(--accent); color:#fff; border:none; border-radius:10px; padding:9px 18px; font-size:.9rem; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:6px; }
+.add-task-btn:hover { background:#7c73ff; }
+
+/* ── TABS ── */
+.tabs { display:flex; gap:0; border-bottom:1px solid var(--border); background:var(--surface); padding:0 20px; overflow-x:auto; }
+.tab { padding:12px 18px; font-size:.85rem; font-weight:500; color:var(--text3); cursor:pointer; border-bottom:2px solid transparent; white-space:nowrap; transition:all .15s; }
+.tab.active { color:var(--accent2); border-bottom-color:var(--accent2); }
+.tab:hover:not(.active) { color:var(--text2); }
+
+/* ── MAIN CONTENT ── */
+.content { padding:20px; max-width:1400px; margin:0 auto; }
+
+/* ── TWO COLUMN LAYOUT ── */
+.two-col { display:grid; grid-template-columns:1fr 340px; gap:20px; align-items:start; }
+@media (max-width:900px) { .two-col { grid-template-columns:1fr; } }
+
+/* ── FILINGS PANEL ── */
+.filings-panel { background:var(--filing-surface); border:1px solid var(--filing-border); border-radius:14px; overflow:hidden; position:sticky; top:100px; }
+.filings-header { background:#2a1500; padding:14px 16px; display:flex; align-items:center; gap:8px; border-bottom:1px solid var(--filing-border); }
+.filings-header-icon { font-size:1.1rem; }
+.filings-header-title { font-size:.9rem; font-weight:700; color:#fb923c; letter-spacing:.03em; text-transform:uppercase; }
+.filings-header-count { margin-left:auto; background:#7c3010; color:#fb923c; font-size:.75rem; font-weight:600; padding:2px 8px; border-radius:10px; }
+.filings-list { padding:8px; }
+.filings-empty { padding:20px 16px; text-align:center; color:var(--text3); font-size:.85rem; }
+
+/* ── SECTION HEADERS ── */
+.section-header { display:flex; align-items:center; gap:10px; margin:0 0 12px; }
+.section-title { font-size:.8rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text3); }
+.section-count { background:var(--surface3); color:var(--text3); font-size:.72rem; font-weight:600; padding:2px 8px; border-radius:10px; }
+
+/* ── TASK CARD ── */
+.task-card {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;
+  margin-bottom:8px;
+  transition:all .15s;
+  cursor:pointer;
+  position:relative;
+}
+.task-card:hover { border-color:var(--accent); background:var(--surface2); }
+.task-card.done-card { opacity:.55; }
+.task-card.dragging { opacity:.4; border:2px dashed var(--accent); }
+.task-card.drag-over { border-color:var(--accent2); background:var(--surface3); transform:translateY(-2px); }
+
+/* Filing card variant */
+.task-card.filing-card { background:#1c1208; border-color:#5a2808; border-radius:10px; }
+.task-card.filing-card:hover { border-color:var(--filing-accent); background:#231508; }
+
+.drag-handle {
+  position:absolute; left:0; top:0; bottom:0; width:28px;
+  display:flex; align-items:center; justify-content:center;
+  color:var(--text3); font-size:.75rem; cursor:grab; border-radius:12px 0 0 12px;
+  opacity:0; transition:opacity .15s;
+}
+.task-card:hover .drag-handle { opacity:1; }
+.drag-handle:active { cursor:grabbing; }
+
+.task-inner { padding:12px 12px 12px 28px; display:flex; align-items:flex-start; gap:10px; }
+.task-left { flex:1; min-width:0; }
+.task-type-badge { display:inline-flex; align-items:center; gap:4px; font-size:.72rem; font-weight:600; color:var(--text3); margin-bottom:4px; }
+.task-title { font-size:.9rem; font-weight:500; line-height:1.35; }
+.task-title.done-title { text-decoration:line-through; color:var(--text3); }
+.task-meta { display:flex; flex-wrap:wrap; align-items:center; gap:4px; margin-top:5px; font-size:.78rem; }
+.meta-client { color:var(--text2); font-weight:500; }
+.meta-dot { color:var(--text3); }
+.priority-badge { font-size:.7rem; font-weight:600; padding:2px 7px; border-radius:8px; }
+.deadline-badge { font-weight:500; }
+.hard-badge { font-size:.7rem; font-weight:700; color:#fb923c; }
+.task-notes { margin-top:6px; font-size:.78rem; color:var(--text3); line-height:1.4; padding:6px 8px; background:var(--surface3); border-radius:6px; }
+.subtasks-list { margin-top:8px; display:flex; flex-direction:column; gap:4px; }
+.subtask-item { display:flex; align-items:flex-start; gap:6px; font-size:.78rem; color:var(--text2); }
+.subtask-check { margin-top:1px; width:13px; height:13px; accent-color:var(--accent); cursor:pointer; flex-shrink:0; }
+.subtask-text { line-height:1.3; }
+.subtask-text.done-sub { text-decoration:line-through; color:var(--text3); }
+
+.task-right { display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
+.status-select {
+  background:var(--surface3); border:1px solid var(--border); color:var(--text);
+  font-size:.75rem; padding:4px 6px; border-radius:7px; cursor:pointer; outline:none;
+  font-family:inherit;
+}
+.status-select:focus { border-color:var(--accent); }
+
+/* ── MULTISTEP GROUP ── */
+.multistep-group { margin-bottom:12px; }
+.multistep-header { display:flex; align-items:center; gap:8px; padding:6px 10px; background:var(--surface2); border:1px solid var(--border); border-radius:10px 10px 0 0; margin-bottom:0; }
+.multistep-label { font-size:.8rem; font-weight:600; color:var(--accent2); }
+.multistep-count { margin-left:auto; font-size:.72rem; color:var(--text3); }
+.multistep-group .task-card { border-radius:0; margin-bottom:1px; }
+.multistep-group .task-card:last-child { border-radius:0 0 10px 10px; margin-bottom:0; }
+
+/* ── EMPTY STATE ── */
+.empty-state { text-align:center; padding:48px 20px; color:var(--text3); }
+.empty-state .es-icon { font-size:2.5rem; margin-bottom:12px; }
+.empty-state p { font-size:.9rem; }
+
+/* ── MODAL ── */
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:1000; align-items:flex-start; justify-content:center; padding:20px; overflow-y:auto; }
+.modal { background:var(--surface); border:1px solid var(--border); border-radius:16px; width:min(560px,100%); padding:28px; margin:auto; }
+.modal-title { font-size:1.15rem; font-weight:700; margin-bottom:22px; }
+.field-label { font-size:.8rem; font-weight:600; color:var(--text2); margin-bottom:6px; display:block; }
+.field-row { margin-bottom:16px; }
+.field-input, .field-select, .field-textarea {
+  width:100%; padding:10px 13px; background:var(--surface2); border:1px solid var(--border);
+  border-radius:10px; color:var(--text); font-size:.9rem; outline:none; font-family:inherit;
+}
+.field-input:focus, .field-select:focus, .field-textarea:focus { border-color:var(--accent); }
+.field-textarea { resize:vertical; min-height:70px; }
+.field-select option { background:var(--surface2); }
+.two-fields { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media(max-width:480px) { .two-fields { grid-template-columns:1fr; } }
+.checkbox-row { display:flex; align-items:center; gap:8px; margin-bottom:16px; }
+.checkbox-row input { accent-color:var(--accent); width:15px; height:15px; }
+.checkbox-row label { font-size:.88rem; color:var(--text2); cursor:pointer; }
+.modal-actions { display:flex; gap:10px; margin-top:24px; }
+.btn-save { flex:1; padding:11px; background:var(--accent); color:#fff; border:none; border-radius:10px; font-size:.95rem; font-weight:600; cursor:pointer; }
+.btn-save:hover { background:#7c73ff; }
+.btn-cancel { padding:11px 20px; background:var(--surface3); color:var(--text2); border:none; border-radius:10px; font-size:.95rem; cursor:pointer; }
+.btn-cancel:hover { background:var(--border); }
+.btn-delete { padding:11px 16px; background:transparent; color:var(--red); border:1px solid var(--red); border-radius:10px; font-size:.9rem; cursor:pointer; }
+.btn-delete:hover { background:#3a1515; }
+
+/* Subtask editor */
+.subtask-editor { display:flex; flex-direction:column; gap:6px; margin-bottom:8px; }
+.subtask-edit-row { display:flex; gap:6px; align-items:center; }
+.subtask-edit-input { flex:1; padding:8px 11px; background:var(--surface3); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:.85rem; outline:none; font-family:inherit; }
+.subtask-edit-input:focus { border-color:var(--accent); }
+.subtask-remove-btn { background:transparent; border:none; color:var(--red); cursor:pointer; font-size:1rem; padding:0 4px; flex-shrink:0; }
+.add-subtask-btn { background:transparent; border:1px dashed var(--border); color:var(--text3); border-radius:8px; padding:7px 12px; font-size:.82rem; cursor:pointer; width:100%; text-align:left; }
+.add-subtask-btn:hover { border-color:var(--accent); color:var(--accent2); }
+
+/* ── CLIENT VIEW ── */
+.client-group { margin-bottom:24px; }
+.client-group-header { font-size:.88rem; font-weight:700; color:var(--text2); padding:8px 12px; background:var(--surface2); border-radius:8px 8px 0 0; border:1px solid var(--border); border-bottom:none; display:flex; align-items:center; gap:8px; }
+.client-group-tasks { border:1px solid var(--border); border-radius:0 0 8px 8px; overflow:hidden; }
+.client-group-tasks .task-card { border-radius:0; border:none; border-bottom:1px solid var(--border); margin-bottom:0; }
+.client-group-tasks .task-card:last-child { border-bottom:none; }
+
+/* ── TOAST ── */
+.toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:10px 20px; border-radius:10px; font-size:.85rem; z-index:9999; pointer-events:none; opacity:0; transition:opacity .2s; }
+.toast.show { opacity:1; }
+</style>
+</head>
+<body>
+
+<!-- PASSWORD -->
+<div id="password-screen">
+  <div class="pw-box">
+    <div style="font-size:2rem;margin-bottom:10px">✅</div>
+    <h2>Case Task Manager</h2>
+    <p>Enter your password to continue</p>
+    <input id="password-input" type="password" class="pw-input" placeholder="Password">
+    <div id="password-error" class="pw-error">Incorrect password. Try again.</div>
+    <button id="password-submit" class="pw-btn">Unlock</button>
+  </div>
+</div>
+
+<!-- SETUP -->
+<div id="setup-screen">
+  <div class="setup-box">
+    <h2>Connect to Supabase</h2>
+    <p>Enter your Supabase credentials to get started.</p>
+    <input id="setup-url" type="text" class="setup-input" placeholder="Project URL (https://xxx.supabase.co)">
+    <input id="setup-key" type="text" class="setup-input" placeholder="Anon public key">
+    <button id="setup-connect" class="setup-btn">Connect</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <span class="app-title">✅ Case Task Manager</span>
+      <span class="date-display" id="date-display"></span>
+    </div>
+    <div class="top-bar-right">
+      <button class="add-task-btn" id="add-task-btn">+ New Task</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="all">All Tasks</div>
+    <div class="tab" data-tab="today">Today's Focus</div>
+    <div class="tab" data-tab="week">This Week</div>
+    <div class="tab" data-tab="client">By Client</div>
+  </div>
+
+  <div class="content">
+    <div id="tab-content"></div>
+  </div>
+</div>
+
+<!-- TASK MODAL -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">New Task</div>
+    <div class="field-row">
+      <label class="field-label">Task Title *</label>
+      <input id="f-title" type="text" class="field-input" placeholder="What needs to be done?">
+    </div>
+    <div class="two-fields">
+      <div class="field-row">
+        <label class="field-label">Task Type</label>
+        <select id="f-type" class="field-select">
+          <option>Client Call</option>
+          <option>Client Email</option>
+          <option>Agency/Nonprofit Call</option>
+          <option>Answer</option>
+          <option>Motion</option>
+          <option>Other Filing</option>
+          <option>Internal/Admin</option>
+          <option>OPA Communication</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="field-row">
+        <label class="field-label">Priority</label>
+        <select id="f-priority" class="field-select">
+          <option>Urgent</option>
+          <option selected>Normal</option>
+          <option>High</option>
+          <option>Low</option>
+        </select>
+      </div>
+    </div>
+    <div class="two-fields">
+      <div class="field-row">
+        <label class="field-label">Client (Last, First)</label>
+        <input id="f-client" type="text" class="field-input" placeholder="e.g. Smith, Jane">
+      </div>
+      <div class="field-row">
+        <label class="field-label">Deadline</label>
+        <input id="f-deadline" type="date" class="field-input">
+      </div>
+    </div>
+    <div class="checkbox-row">
+      <input type="checkbox" id="f-hard-deadline">
+      <label for="f-hard-deadline">🔒 Hard court deadline (filing, hearing, etc.)</label>
+    </div>
+    <div class="field-row">
+      <label class="field-label">Notes</label>
+      <textarea id="f-notes" class="field-textarea" placeholder="Optional notes..."></textarea>
+    </div>
+    <div class="field-row">
+      <label class="field-label">Sub-steps (optional)</label>
+      <div id="subtask-editor" class="subtask-editor"></div>
+      <button type="button" class="add-subtask-btn" id="add-subtask-btn">+ Add step</button>
+    </div>
+    <div class="two-fields">
+      <div class="field-row">
+        <label class="field-label">Status</label>
+        <select id="f-status" class="field-select">
+          <option>To Do</option>
+          <option>In Progress</option>
+          <option>Waiting</option>
+          <option>Done</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-delete" id="btn-delete" style="display:none">Delete</button>
+      <button class="btn-cancel" id="btn-cancel">Cancel</button>
+      <button class="btn-save" id="btn-save">Save Task</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════
+const APP_PASSWORD = "ThunderUp25!";
+const PW_KEY = "ctm_auth";
+const CREDS_KEY = "ctm_creds";
+
+const TASK_TYPES = [
+  "Client Call","Client Email","Agency/Nonprofit Call",
+  "Answer","Motion","Other Filing",
+  "Internal/Admin","OPA Communication","Other"
+];
+const FILING_TYPES = new Set(["Answer","Motion","Other Filing"]);
+
+const STATUSES = ["To Do","In Progress","Waiting","Done"];
+
+const PRIORITY_STYLE = {
+  Urgent:  { bg:"#3a1020", color:"#f87171" },
+  High:    { bg:"#2a1f08", color:"#fbbf24" },
+  Normal:  { bg:"#1a1a2e", color:"#a0a0c0" },
+  Low:     { bg:"#0e1e18", color:"#6ee7b7" },
+};
+
+const TYPE_ICON = {
+  "Client Call":"📞","Client Email":"✉️","Agency/Nonprofit Call":"📋",
+  "Answer":"📄","Motion":"⚖️","Other Filing":"📁",
+  "Internal/Admin":"🗂️","OPA Communication":"📨","Other":"📌"
+};
+
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+let db = null;
+let tasks = [];
+let currentTab = "all";
+let editingId = null;
+let dragSrcId = null;
+
+// ═══════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════
+function isAuthenticated() {
+  try { return localStorage.getItem(PW_KEY) === APP_PASSWORD; } catch(e) { return false; }
+}
+
+function handlePassword() {
+  const val = document.getElementById("password-input").value;
+  const err = document.getElementById("password-error");
+  if (val === APP_PASSWORD) {
+    try { localStorage.setItem(PW_KEY, APP_PASSWORD); } catch(e) {}
+    document.getElementById("password-screen").style.display = "none";
+    proceedAfterAuth();
+  } else {
+    err.style.display = "block";
+    document.getElementById("password-input").value = "";
+    document.getElementById("password-input").focus();
+  }
+}
+
+function proceedAfterAuth() {
+  const creds = getCredentials();
+  if (creds.url && creds.key) {
+    initSupabase(creds.url, creds.key);
+    showApp();
+  } else {
+    document.getElementById("setup-screen").style.display = "flex";
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// CREDENTIALS
+// ═══════════════════════════════════════════════════
+function getCredentials() {
+  try { return JSON.parse(localStorage.getItem(CREDS_KEY)) || {}; } catch(e) { return {}; }
+}
+function saveCredentials(url, key) {
+  try { localStorage.setItem(CREDS_KEY, JSON.stringify({url, key})); } catch(e) {}
+}
+
+function handleConnect() {
+  const url = document.getElementById("setup-url").value.trim();
+  const key = document.getElementById("setup-key").value.trim();
+  if (!url || !key) return alert("Please enter both fields.");
+  saveCredentials(url, key);
+  initSupabase(url, key);
+  document.getElementById("setup-screen").style.display = "none";
+  showApp();
+}
+
+// ═══════════════════════════════════════════════════
+// SUPABASE
+// ═══════════════════════════════════════════════════
+function initSupabase(url, key) {
+  db = supabase.createClient(url, key);
+}
+
+async function loadTasks() {
+  if (!db) return;
+  const { data, error } = await db.from("tasks").select("*").order("sort_order", {ascending:true}).order("created_at", {ascending:true});
+  if (error) { console.error(error); return; }
+  tasks = data || [];
+  renderCurrentTab();
+}
+
+async function saveTask(taskData) {
+  if (!db) return;
+  if (editingId) {
+    // UPDATE existing task
+    const { error } = await db.from("tasks").update(taskData).eq("id", editingId);
+    if (error) { showToast("Error saving task"); console.error(error); return; }
+    showToast("Task updated");
+  } else {
+    // INSERT new task
+    const { error } = await db.from("tasks").insert([taskData]);
+    if (error) { showToast("Error saving task"); console.error(error); return; }
+    showToast("Task added");
+  }
+  await loadTasks();
+}
+
+async function deleteTask(id) {
+  if (!db) return;
+  await db.from("tasks").delete().eq("id", id);
+  showToast("Task deleted");
+  await loadTasks();
+}
+
+async function updateStatus(id, status) {
+  if (!db) return;
+  await db.from("tasks").update({ status, updated_at: new Date().toISOString() }).eq("id", id);
+  const t = tasks.find(x => x.id === id);
+  if (t) t.status = status;
+  renderCurrentTab();
+}
+
+async function updateSortOrders(orderedIds) {
+  if (!db) return;
+  const updates = orderedIds.map((id, idx) => db.from("tasks").update({sort_order: idx}).eq("id", id));
+  await Promise.all(updates);
+}
+
+async function toggleSubtask(taskId, subIdx, done) {
+  const t = tasks.find(x => x.id === taskId);
+  if (!t) return;
+  let subs = parseSubtasks(t.subtasks);
+  subs[subIdx].done = done;
+  const newVal = JSON.stringify(subs);
+  await db.from("tasks").update({ subtasks: newVal }).eq("id", taskId);
+  t.subtasks = newVal;
+  renderCurrentTab();
+}
+
+// ═══════════════════════════════════════════════════
+// DATES
+// ═══════════════════════════════════════════════════
+function today() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
+function weekEnd() {
+  const d = new Date();
+  const day = d.getDay();
+  const diff = 6 - day;
+  d.setDate(d.getDate() + diff);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
+function daysUntil(dateStr) {
+  if (!dateStr) return null;
+  const now = new Date(); now.setHours(0,0,0,0);
+  const d = new Date(dateStr + "T00:00:00");
+  return Math.round((d - now) / 86400000);
+}
+
+function fmtDate(dateStr) {
+  if (!dateStr) return "";
+  const [y,m,d] = dateStr.split("-");
+  return `${parseInt(m)}/${parseInt(d)}`;
+}
+
+function setDateDisplay() {
+  const d = new Date();
+  document.getElementById("date-display").textContent = d.toLocaleDateString("en-US", {weekday:"long", month:"long", day:"numeric"});
+}
+
+// ═══════════════════════════════════════════════════
+// SUBTASKS
+// ═══════════════════════════════════════════════════
+function parseSubtasks(raw) {
+  if (!raw) return [];
+  try {
+    const p = JSON.parse(raw);
+    if (Array.isArray(p)) return p;
+  } catch(e) {}
+  // Legacy: plain text lines
+  return raw.split("\n").filter(Boolean).map(t => ({text:t, done:false}));
+}
+
+// ═══════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════
+function escHtml(s) {
+  if (!s) return "";
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function renderCurrentTab() {
+  renderTab(currentTab);
+}
+
+function renderTab(tab) {
+  const el = document.getElementById("tab-content");
+  const td = today();
+  const we = weekEnd();
+
+  if (tab === "client") {
+    renderClientView(el);
+    return;
+  }
+
+  // Filter tasks for this tab
+  let filtered;
+  if (tab === "today") {
+    filtered = tasks.filter(t => t.deadline <= td || (!t.deadline && t.status !== "Done"));
+  } else if (tab === "week") {
+    filtered = tasks.filter(t => t.deadline && t.deadline <= we);
+  } else {
+    filtered = [...tasks];
+  }
+
+  // Split into filings and regular
+  const filings = filtered.filter(t => FILING_TYPES.has(t.type));
+  const regular = filtered.filter(t => !FILING_TYPES.has(t.type));
+
+  // Sort: incomplete first, then by deadline, then by sort_order
+  const sortTasks = arr => arr.sort((a,b) => {
+    if (a.status==="Done" && b.status!=="Done") return 1;
+    if (a.status!=="Done" && b.status==="Done") return -1;
+    if (a.deadline && b.deadline) return a.deadline.localeCompare(b.deadline);
+    if (a.deadline && !b.deadline) return -1;
+    if (!a.deadline && b.deadline) return 1;
+    return (a.sort_order||0) - (b.sort_order||0);
+  });
+
+  sortTasks(filings);
+  sortTasks(regular);
+
+  const filingsHtml = filings.length
+    ? filings.map(t => renderTaskCard(t, true)).join("")
+    : `<div class="filings-empty">No filings due</div>`;
+
+  const regularHtml = regular.length
+    ? regular.map(t => renderTaskCard(t, false)).join("")
+    : `<div class="empty-state"><div class="es-icon">✅</div><p>No tasks here</p></div>`;
+
+  const tabLabel = tab === "today" ? "Today's Tasks" : tab === "week" ? "This Week" : "All Tasks";
+
+  el.innerHTML = `
+    <div class="two-col">
+      <div class="main-col">
+        <div class="section-header">
+          <span class="section-title">${tabLabel}</span>
+          <span class="section-count">${regular.filter(t=>t.status!=="Done").length} open</span>
+        </div>
+        <div id="task-list-regular" class="task-list">${regularHtml}</div>
+      </div>
+      <div class="filings-panel">
+        <div class="filings-header">
+          <span class="filings-header-icon">⚖️</span>
+          <span class="filings-header-title">Filings & Motions</span>
+          <span class="filings-header-count">${filings.filter(t=>t.status!=="Done").length} open</span>
+        </div>
+        <div id="task-list-filings" class="filings-list">${filingsHtml}</div>
+      </div>
+    </div>`;
+
+  attachDragDrop("task-list-regular", regular);
+  attachDragDrop("task-list-filings", filings);
+  attachStatusHandlers();
+}
+
+function renderClientView(el) {
+  const grouped = {};
+  tasks.forEach(t => {
+    const key = t.client || "__admin__";
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(t);
+  });
+
+  const clients = Object.keys(grouped).filter(k=>k!=="__admin__").sort();
+  if (grouped["__admin__"]) clients.push("__admin__");
+
+  if (clients.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="es-icon">📋</div><p>No tasks yet</p></div>`;
+    return;
+  }
+
+  el.innerHTML = clients.map(client => {
+    const ts = grouped[client];
+    const label = client === "__admin__" ? "Admin / No Client" : client;
+    const open = ts.filter(t=>t.status!=="Done").length;
+    return `<div class="client-group">
+      <div class="client-group-header">
+        👤 ${escHtml(label)}
+        <span style="margin-left:auto;font-size:.75rem;color:var(--text3)">${open} open · ${ts.length} total</span>
+      </div>
+      <div class="client-group-tasks">
+        ${ts.map(t => renderTaskCard(t, FILING_TYPES.has(t.type))).join("")}
+      </div>
+    </div>`;
+  }).join("");
+
+  attachStatusHandlers();
+}
+
+function renderTaskCard(t, isFiling) {
+  const p = PRIORITY_STYLE[t.priority] || PRIORITY_STYLE.Normal;
+  const days = daysUntil(t.deadline);
+  let deadlineHtml = "";
+  if (t.deadline) {
+    let color, label;
+    if (days < 0)       { color = "#c0392b"; label = `${Math.abs(days)}d overdue`; }
+    else if (days === 0){ color = "#c0392b"; label = "Today"; }
+    else if (days === 1){ color = "#c07a00"; label = "Tomorrow"; }
+    else if (days <= 3) { color = "#c07a00"; label = `${days}d`; }
+    else                { color = "#5a5a7a"; label = `${days}d`; }
+    deadlineHtml = `<span class="meta-dot">·</span>
+      <span class="deadline-badge" style="color:${color}">
+        ${t.hard_deadline ? '<span class="hard-badge">🔒</span> ' : ''}${fmtDate(t.deadline)} · ${label}
+      </span>`;
+  }
+
+  const clientHtml = t.client
+    ? `<span class="meta-client">👤 ${escHtml(t.client)}</span><span class="meta-dot">·</span>`
+    : `<span class="meta-client" style="color:#6060a0;font-style:italic">Admin</span><span class="meta-dot">·</span>`;
+
+  const notesHtml = t.notes
+    ? `<div class="task-notes">${escHtml(t.notes)}</div>`
+    : "";
+
+  const subs = parseSubtasks(t.subtasks);
+  const subtasksHtml = subs.length
+    ? `<div class="subtasks-list">${subs.map((s,i) => `
+        <div class="subtask-item">
+          <input type="checkbox" class="subtask-check" ${s.done?"checked":""} data-task-id="${t.id}" data-sub-idx="${i}">
+          <span class="subtask-text ${s.done?"done-sub":""}">${escHtml(s.text)}</span>
+        </div>`).join("")}</div>`
+    : "";
+
+  const done = t.status === "Done";
+  const cardClass = `task-card${done?" done-card":""}${isFiling?" filing-card":""}`;
+
+  return `<div class="${cardClass}" data-id="${t.id}" draggable="true">
+    <div class="drag-handle" title="Drag to reorder">⠿</div>
+    <div class="task-inner" onclick="openEditModal('${t.id}')">
+      <div class="task-left">
+        <div class="task-type-badge">${TYPE_ICON[t.type]||"📌"} ${escHtml(t.type)}</div>
+        <div class="task-title ${done?"done-title":""}">${escHtml(t.title)}</div>
+        <div class="task-meta">
+          ${clientHtml}
+          <span class="priority-badge" style="background:${p.bg};color:${p.color}">${t.priority}</span>
+          ${deadlineHtml}
+        </div>
+        ${notesHtml}
+        ${subtasksHtml}
+      </div>
+      <div class="task-right" onclick="event.stopPropagation()">
+        <select class="status-select" data-status-id="${t.id}">
+          ${STATUSES.map(s=>`<option${t.status===s?" selected":""}>${s}</option>`).join("")}
+        </select>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════
+// DRAG AND DROP
+// ═══════════════════════════════════════════════════
+function attachDragDrop(listId, taskArray) {
+  const list = document.getElementById(listId);
+  if (!list) return;
+
+  list.querySelectorAll(".task-card[draggable]").forEach(card => {
+    card.addEventListener("dragstart", e => {
+      dragSrcId = card.dataset.id;
+      card.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+    });
+    card.addEventListener("dragend", () => {
+      card.classList.remove("dragging");
+      list.querySelectorAll(".task-card").forEach(c => c.classList.remove("drag-over"));
+    });
+    card.addEventListener("dragover", e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      list.querySelectorAll(".task-card").forEach(c => c.classList.remove("drag-over"));
+      if (card.dataset.id !== dragSrcId) card.classList.add("drag-over");
+    });
+    card.addEventListener("drop", async e => {
+      e.preventDefault();
+      if (!dragSrcId || card.dataset.id === dragSrcId) return;
+      card.classList.remove("drag-over");
+
+      // Reorder in the taskArray
+      const srcIdx = taskArray.findIndex(t => t.id === dragSrcId);
+      const tgtIdx = taskArray.findIndex(t => t.id === card.dataset.id);
+      if (srcIdx === -1 || tgtIdx === -1) return;
+
+      const [moved] = taskArray.splice(srcIdx, 1);
+      taskArray.splice(tgtIdx, 0, moved);
+
+      // Re-render this list immediately for responsiveness
+      list.innerHTML = taskArray.map(t => renderTaskCard(t, FILING_TYPES.has(t.type))).join("");
+      attachDragDrop(listId, taskArray);
+      attachStatusHandlers();
+
+      // Persist new sort orders
+      await updateSortOrders(taskArray.map(t => t.id));
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// STATUS HANDLERS
+// ═══════════════════════════════════════════════════
+function attachStatusHandlers() {
+  document.querySelectorAll(".status-select").forEach(sel => {
+    sel.addEventListener("change", async e => {
+      await updateStatus(e.target.dataset.statusId, e.target.value);
+    });
+  });
+  document.querySelectorAll(".subtask-check").forEach(chk => {
+    chk.addEventListener("change", async e => {
+      const taskId = chk.dataset.taskId;
+      const subIdx = parseInt(chk.dataset.subIdx);
+      await toggleSubtask(taskId, subIdx, chk.checked);
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// MODAL — NEW TASK
+// ═══════════════════════════════════════════════════
+function openNewModal() {
+  editingId = null;
+  document.getElementById("modal-title").textContent = "New Task";
+  document.getElementById("f-title").value = "";
+  document.getElementById("f-type").value = "Client Call";
+  document.getElementById("f-priority").value = "Normal";
+  document.getElementById("f-client").value = "";
+  document.getElementById("f-deadline").value = "";
+  document.getElementById("f-hard-deadline").checked = false;
+  document.getElementById("f-notes").value = "";
+  document.getElementById("f-status").value = "To Do";
+  document.getElementById("btn-delete").style.display = "none";
+  document.getElementById("btn-save").textContent = "Save Task";
+  renderSubtaskEditor([]);
+  document.getElementById("modal-overlay").style.display = "flex";
+  document.getElementById("f-title").focus();
+}
+
+// ═══════════════════════════════════════════════════
+// MODAL — EDIT TASK
+// ═══════════════════════════════════════════════════
+function openEditModal(id) {
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+  editingId = id;
+  document.getElementById("modal-title").textContent = "Edit Task";
+  document.getElementById("f-title").value = t.title || "";
+  document.getElementById("f-type").value = t.type || "Client Call";
+  document.getElementById("f-priority").value = t.priority || "Normal";
+  document.getElementById("f-client").value = t.client || "";
+  document.getElementById("f-deadline").value = t.deadline || "";
+  document.getElementById("f-hard-deadline").checked = !!t.hard_deadline;
+  document.getElementById("f-notes").value = t.notes || "";
+  document.getElementById("f-status").value = t.status || "To Do";
+  document.getElementById("btn-delete").style.display = "inline-block";
+  document.getElementById("btn-save").textContent = "Update Task";
+  renderSubtaskEditor(parseSubtasks(t.subtasks));
+  document.getElementById("modal-overlay").style.display = "flex";
+  document.getElementById("f-title").focus();
+}
+
+// ═══════════════════════════════════════════════════
+// SUBTASK EDITOR
+// ═══════════════════════════════════════════════════
+function renderSubtaskEditor(subs) {
+  const editor = document.getElementById("subtask-editor");
+  editor.innerHTML = subs.map((s, i) => `
+    <div class="subtask-edit-row" data-idx="${i}">
+      <input type="text" class="subtask-edit-input" value="${escHtml(s.text)}" placeholder="Step ${i+1}...">
+      <button type="button" class="subtask-remove-btn" onclick="removeSubtask(${i})">✕</button>
+    </div>`).join("");
+}
+
+function addSubtask() {
+  const editor = document.getElementById("subtask-editor");
+  const rows = editor.querySelectorAll(".subtask-edit-row");
+  const idx = rows.length;
+  const row = document.createElement("div");
+  row.className = "subtask-edit-row";
+  row.dataset.idx = idx;
+  row.innerHTML = `<input type="text" class="subtask-edit-input" placeholder="Step ${idx+1}...">
+    <button type="button" class="subtask-remove-btn" onclick="removeSubtask(${idx})">✕</button>`;
+  editor.appendChild(row);
+  row.querySelector("input").focus();
+}
+
+function removeSubtask(idx) {
+  const editor = document.getElementById("subtask-editor");
+  const rows = editor.querySelectorAll(".subtask-edit-row");
+  if (rows[idx]) rows[idx].remove();
+  // Re-index remaining
+  editor.querySelectorAll(".subtask-edit-row").forEach((row, i) => {
+    row.dataset.idx = i;
+    row.querySelector("input").placeholder = `Step ${i+1}...`;
+    row.querySelector(".subtask-remove-btn").setAttribute("onclick", `removeSubtask(${i})`);
+  });
+}
+
+function collectSubtasks() {
+  const editor = document.getElementById("subtask-editor");
+  const existing = editingId ? parseSubtasks(tasks.find(t=>t.id===editingId)?.subtasks) : [];
+  const rows = editor.querySelectorAll(".subtask-edit-row");
+  const subs = [];
+  rows.forEach((row, i) => {
+    const text = row.querySelector("input").value.trim();
+    if (text) {
+      const prevDone = existing[i]?.done || false;
+      subs.push({ text, done: prevDone });
+    }
+  });
+  return subs.length ? JSON.stringify(subs) : null;
+}
+
+// ═══════════════════════════════════════════════════
+// SAVE / DELETE
+// ═══════════════════════════════════════════════════
+async function handleSave() {
+  const title = document.getElementById("f-title").value.trim();
+  if (!title) { document.getElementById("f-title").focus(); return; }
+
+  const taskData = {
+    title,
+    type: document.getElementById("f-type").value,
+    priority: document.getElementById("f-priority").value,
+    client: document.getElementById("f-client").value.trim(),
+    deadline: document.getElementById("f-deadline").value || null,
+    hard_deadline: document.getElementById("f-hard-deadline").checked,
+    notes: document.getElementById("f-notes").value.trim(),
+    status: document.getElementById("f-status").value,
+    subtasks: collectSubtasks(),
+    updated_at: new Date().toISOString(),
+  };
+
+  closeModal();
+  await saveTask(taskData);
+}
+
+async function handleDelete() {
+  if (!editingId) return;
+  if (!confirm("Delete this task?")) return;
+  const id = editingId;
+  closeModal();
+  await deleteTask(id);
+}
+
+function closeModal() {
+  document.getElementById("modal-overlay").style.display = "none";
+  editingId = null;
+}
+
+// ═══════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2000);
+}
+
+// ═══════════════════════════════════════════════════
+// APP INIT
+// ═══════════════════════════════════════════════════
+function showApp() {
+  document.getElementById("app").style.display = "block";
+  setDateDisplay();
+  loadTasks();
+  setInterval(loadTasks, 30000);
+}
+
+// Tab switching
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    currentTab = tab.dataset.tab;
+    renderCurrentTab();
+  });
+});
+
+document.getElementById("add-task-btn").addEventListener("click", openNewModal);
+document.getElementById("btn-cancel").addEventListener("click", closeModal);
+document.getElementById("btn-save").addEventListener("click", handleSave);
+document.getElementById("btn-delete").addEventListener("click", handleDelete);
+document.getElementById("add-subtask-btn").addEventListener("click", addSubtask);
+document.getElementById("modal-overlay").addEventListener("click", e => { if(e.target===e.currentTarget) closeModal(); });
+
+// Keyboard shortcuts
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") closeModal();
+  if (e.key === "Enter" && e.metaKey) handleSave();
+});
+
+// Setup connect
+document.getElementById("setup-connect").addEventListener("click", handleConnect);
+
+// Password
+document.getElementById("password-submit").addEventListener("click", handlePassword);
+document.getElementById("password-input").addEventListener("keydown", e => { if(e.key==="Enter") handlePassword(); });
+
+// BOOT
+if (isAuthenticated()) {
+  proceedAfterAuth();
+} else {
+  document.getElementById("password-screen").style.display = "flex";
+  document.getElementById("password-input").focus();
+}
+</script>
+</body>
+</html>
