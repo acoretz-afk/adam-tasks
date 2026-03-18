@@ -185,6 +185,19 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .btn-delete { padding:11px 16px; background:transparent; color:var(--red); border:1px solid var(--red); border-radius:10px; font-size:.9rem; cursor:pointer; }
 .btn-delete:hover { background:#3a1515; }
 
+/* ── FILING DEADLINES (prominent) ── */
+.filing-deadlines { margin-top:7px; display:flex; flex-direction:column; gap:4px; }
+.filing-dl-row { display:flex; align-items:center; gap:7px; }
+.filing-dl-label { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#fb923c; width:52px; flex-shrink:0; }
+.filing-dl-value { font-size:.85rem; font-weight:700; }
+.filing-dl-value.overdue { color:#e05c5c; }
+.filing-dl-value.soon { color:#f0a500; }
+.filing-dl-value.ok { color:#e8e8f0; }
+.filing-dl-days { font-size:.75rem; font-weight:500; color:var(--text3); }
+
+/* ── DRAFT DEADLINE FIELD (modal) ── */
+#draft-deadline-row { display:none; }
+
 /* ── HIDE DONE TOGGLE ── */
 .hide-done-btn { background:var(--surface2); color:var(--text2); border:1px solid var(--border); border-radius:10px; padding:9px 14px; font-size:.85rem; font-weight:500; cursor:pointer; }
 .hide-done-btn.active { color:var(--accent2); border-color:var(--accent2); }
@@ -304,8 +317,14 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
         <input id="f-client" type="text" class="field-input" placeholder="e.g. Smith, Jane">
       </div>
       <div class="field-row">
-        <label class="field-label">Deadline</label>
+        <label class="field-label" id="deadline-label">Deadline</label>
         <input id="f-deadline" type="date" class="field-input">
+      </div>
+    </div>
+    <div class="two-fields" id="draft-deadline-row">
+      <div class="field-row">
+        <label class="field-label">Draft Deadline</label>
+        <input id="f-draft-deadline" type="date" class="field-input">
       </div>
     </div>
     <div class="checkbox-row">
@@ -584,9 +603,6 @@ function renderTab(tab) {
   const sortTasks = arr => arr.sort((a,b) => {
     if (a.status==="Done" && b.status!=="Done") return 1;
     if (a.status!=="Done" && b.status==="Done") return -1;
-    if (a.deadline && b.deadline) return a.deadline.localeCompare(b.deadline);
-    if (a.deadline && !b.deadline) return -1;
-    if (!a.deadline && b.deadline) return 1;
     return (a.sort_order||0) - (b.sort_order||0);
   });
 
@@ -664,19 +680,58 @@ function renderClientView(el) {
 
 function renderTaskCard(t, isFiling) {
   const p = PRIORITY_STYLE[t.priority] || PRIORITY_STYLE.Normal;
-  const days = daysUntil(t.deadline);
+
+  // For filing cards, build prominent deadline block instead of inline badge
+  function dlClass(days) {
+    if (days === null) return "ok";
+    if (days < 0) return "overdue";
+    if (days <= 3) return "soon";
+    return "ok";
+  }
+  function dlLabel(days) {
+    if (days === null) return "";
+    if (days < 0) return `${Math.abs(days)}d overdue`;
+    if (days === 0) return "Today";
+    if (days === 1) return "Tomorrow";
+    return `${days}d`;
+  }
+
   let deadlineHtml = "";
-  if (t.deadline) {
-    let color, label;
-    if (days < 0)       { color = "#c0392b"; label = `${Math.abs(days)}d overdue`; }
-    else if (days === 0){ color = "#c0392b"; label = "Today"; }
-    else if (days === 1){ color = "#c07a00"; label = "Tomorrow"; }
-    else if (days <= 3) { color = "#c07a00"; label = `${days}d`; }
-    else                { color = "#5a5a7a"; label = `${days}d`; }
-    deadlineHtml = `<span class="meta-dot">·</span>
-      <span class="deadline-badge" style="color:${color}">
-        ${t.hard_deadline ? '<span class="hard-badge">🔒</span> ' : ''}${fmtDate(t.deadline)} · ${label}
-      </span>`;
+  let filingDeadlinesHtml = "";
+
+  if (isFiling) {
+    const filingDays = daysUntil(t.deadline);
+    const draftDays = daysUntil(t.draft_deadline);
+    const rows = [];
+    if (t.draft_deadline) {
+      rows.push(`<div class="filing-dl-row">
+        <span class="filing-dl-label">Draft</span>
+        <span class="filing-dl-value ${dlClass(draftDays)}">${fmtDate(t.draft_deadline)}</span>
+        ${draftDays !== null ? `<span class="filing-dl-days">${dlLabel(draftDays)}</span>` : ""}
+      </div>`);
+    }
+    if (t.deadline) {
+      rows.push(`<div class="filing-dl-row">
+        <span class="filing-dl-label">${t.hard_deadline ? '🔒 Filing' : 'Filing'}</span>
+        <span class="filing-dl-value ${dlClass(filingDays)}">${fmtDate(t.deadline)}</span>
+        ${filingDays !== null ? `<span class="filing-dl-days">${dlLabel(filingDays)}</span>` : ""}
+      </div>`);
+    }
+    if (rows.length) filingDeadlinesHtml = `<div class="filing-deadlines">${rows.join("")}</div>`;
+  } else {
+    const days = daysUntil(t.deadline);
+    if (t.deadline) {
+      let color, label;
+      if (days < 0)       { color = "#c0392b"; label = `${Math.abs(days)}d overdue`; }
+      else if (days === 0){ color = "#c0392b"; label = "Today"; }
+      else if (days === 1){ color = "#c07a00"; label = "Tomorrow"; }
+      else if (days <= 3) { color = "#c07a00"; label = `${days}d`; }
+      else                { color = "#5a5a7a"; label = `${days}d`; }
+      deadlineHtml = `<span class="meta-dot">·</span>
+        <span class="deadline-badge" style="color:${color}">
+          ${t.hard_deadline ? '<span class="hard-badge">🔒</span> ' : ''}${fmtDate(t.deadline)} · ${label}
+        </span>`;
+    }
   }
 
   const clientHtml = t.client
@@ -710,6 +765,7 @@ function renderTaskCard(t, isFiling) {
           <span class="priority-badge" style="background:${p.bg};color:${p.color}">${t.priority}</span>
           ${deadlineHtml}
         </div>
+        ${filingDeadlinesHtml}
         ${notesHtml}
         ${subtasksHtml}
       </div>
@@ -791,6 +847,13 @@ function attachStatusHandlers() {
 // ═══════════════════════════════════════════════════
 // MODAL — NEW TASK
 // ═══════════════════════════════════════════════════
+function updateFilingFields() {
+  const type = document.getElementById("f-type").value;
+  const isFiling = type === "Answer" || type === "Motion";
+  document.getElementById("draft-deadline-row").style.display = isFiling ? "grid" : "none";
+  document.getElementById("deadline-label").textContent = isFiling ? "Filing Deadline" : "Deadline";
+}
+
 function openNewModal() {
   editingId = null;
   document.getElementById("modal-title").textContent = "New Task";
@@ -799,11 +862,13 @@ function openNewModal() {
   document.getElementById("f-priority").value = "Normal";
   document.getElementById("f-client").value = "";
   document.getElementById("f-deadline").value = "";
+  document.getElementById("f-draft-deadline").value = "";
   document.getElementById("f-hard-deadline").checked = false;
   document.getElementById("f-notes").value = "";
   document.getElementById("f-status").value = "To Do";
   document.getElementById("btn-delete").style.display = "none";
   document.getElementById("btn-save").textContent = "Save Task";
+  updateFilingFields();
   renderSubtaskEditor([]);
   document.getElementById("modal-overlay").style.display = "flex";
   document.getElementById("f-title").focus();
@@ -822,11 +887,13 @@ function openEditModal(id) {
   document.getElementById("f-priority").value = t.priority || "Normal";
   document.getElementById("f-client").value = t.client || "";
   document.getElementById("f-deadline").value = t.deadline || "";
+  document.getElementById("f-draft-deadline").value = t.draft_deadline || "";
   document.getElementById("f-hard-deadline").checked = !!t.hard_deadline;
   document.getElementById("f-notes").value = t.notes || "";
   document.getElementById("f-status").value = t.status || "To Do";
   document.getElementById("btn-delete").style.display = "inline-block";
   document.getElementById("btn-save").textContent = "Update Task";
+  updateFilingFields();
   renderSubtaskEditor(parseSubtasks(t.subtasks));
   document.getElementById("modal-overlay").style.display = "flex";
   document.getElementById("f-title").focus();
@@ -897,6 +964,7 @@ async function handleSave() {
     priority: document.getElementById("f-priority").value,
     client: document.getElementById("f-client").value.trim(),
     deadline: document.getElementById("f-deadline").value || null,
+    draft_deadline: document.getElementById("f-draft-deadline").value || null,
     hard_deadline: document.getElementById("f-hard-deadline").checked,
     notes: document.getElementById("f-notes").value.trim(),
     status: document.getElementById("f-status").value,
@@ -957,6 +1025,7 @@ document.querySelectorAll(".tab").forEach(tab => {
   });
 });
 
+document.getElementById("f-type").addEventListener("change", updateFilingFields);
 document.getElementById("hide-done-btn").addEventListener("click", () => {
   hideDone = !hideDone;
   const btn = document.getElementById("hide-done-btn");
