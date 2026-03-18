@@ -248,7 +248,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
       <span class="date-display" id="date-display"></span>
     </div>
     <div class="top-bar-right">
-      <button class="hide-done-btn" id="hide-done-btn">Hide Done</button>
+      <button class="hide-done-btn active" id="hide-done-btn">Show Done</button>
       <button class="add-task-btn" id="add-task-btn">+ New Task</button>
     </div>
   </div>
@@ -380,7 +380,7 @@ let tasks = [];
 let currentTab = "all";
 let editingId = null;
 let dragSrcId = null;
-let hideDone = false;
+let hideDone = true;
 
 // ═══════════════════════════════════════════════════
 // AUTH
