@@ -295,6 +295,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
           <option>Answer</option>
           <option>Motion</option>
           <option>HP Petition</option>
+          <option>OSC</option>
           <option>Other Filing</option>
           <option>Internal/Admin</option>
           <option>OPA Communication</option>
@@ -369,10 +370,10 @@ const CREDS_KEY = "ctm_creds";
 
 const TASK_TYPES = [
   "Client Call","Client Email","Agency/Nonprofit Call",
-  "Answer","Motion","HP Petition","Other Filing",
+  "Answer","Motion","HP Petition","OSC","Other Filing",
   "Internal/Admin","OPA Communication","Other"
 ];
-const FILING_TYPES = new Set(["Answer","Motion","HP Petition","Other Filing"]);
+const FILING_TYPES = new Set(["Answer","Motion","HP Petition","OSC","Other Filing"]);
 
 const STATUSES = ["To Do","In Progress","Waiting","Done"];
 
@@ -385,7 +386,7 @@ const PRIORITY_STYLE = {
 
 const TYPE_ICON = {
   "Client Call":"📞","Client Email":"✉️","Agency/Nonprofit Call":"📋",
-  "Answer":"📄","Motion":"⚖️","HP Petition":"📋","Other Filing":"📁",
+  "Answer":"📄","Motion":"⚖️","HP Petition":"📋","OSC":"📜","Other Filing":"📁",
   "Internal/Admin":"🗂️","OPA Communication":"📨","Other":"📌"
 };
 
