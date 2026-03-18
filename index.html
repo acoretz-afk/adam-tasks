@@ -480,11 +480,11 @@ async function loadTasks() {
   renderCurrentTab();
 }
 
-async function saveTask(taskData) {
+async function saveTask(taskData, id) {
   if (!db) return;
-  if (editingId) {
+  if (id) {
     // UPDATE existing task
-    const { error } = await db.from("tasks").update(taskData).eq("id", editingId);
+    const { error } = await db.from("tasks").update(taskData).eq("id", id);
     if (error) { showToast("Error saving task"); console.error(error); return; }
     showToast("Task updated");
   } else {
@@ -985,8 +985,9 @@ async function handleSave() {
     updated_at: new Date().toISOString(),
   };
 
+  const idToSave = editingId;
   closeModal();
-  await saveTask(taskData);
+  await saveTask(taskData, idToSave);
 }
 
 async function handleDelete() {
