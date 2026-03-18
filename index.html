@@ -230,15 +230,16 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 </head>
 <body>
 
-<!-- PASSWORD -->
-<div id="password-screen">
+<!-- LOGIN -->
+<div id="login-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;align-items:center;justify-content:center;">
   <div class="pw-box">
     <div style="font-size:2rem;margin-bottom:10px">✅</div>
     <h2>Case Task Manager</h2>
-    <p>Enter your password to continue</p>
-    <input id="password-input" type="password" class="pw-input" placeholder="Password">
-    <div id="password-error" class="pw-error">Incorrect password. Try again.</div>
-    <button id="password-submit" class="pw-btn">Unlock</button>
+    <p>Sign in to continue</p>
+    <input id="login-email" type="email" class="pw-input" placeholder="Email">
+    <input id="login-password" type="password" class="pw-input" placeholder="Password">
+    <div id="login-error" class="pw-error"></div>
+    <button id="login-submit" class="pw-btn">Sign In</button>
   </div>
 </div>
 
@@ -263,6 +264,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
     <div class="top-bar-right">
       <button class="hide-done-btn active" id="hide-done-btn">Show Done</button>
       <button class="add-task-btn" id="add-task-btn">+ New Task</button>
+      <button class="btn-cancel" id="sign-out-btn" style="padding:9px 14px;font-size:.85rem;">Sign Out</button>
     </div>
   </div>
 
@@ -365,8 +367,6 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 // ═══════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════
-const APP_PASSWORD = "ThunderUp25!";
-const PW_KEY = "ctm_auth";
 const CREDS_KEY = "ctm_creds";
 
 const TASK_TYPES = [
@@ -404,32 +404,44 @@ let hideDone = true;
 // ═══════════════════════════════════════════════════
 // AUTH
 // ═══════════════════════════════════════════════════
-function isAuthenticated() {
-  try { return localStorage.getItem(PW_KEY) === APP_PASSWORD; } catch(e) { return false; }
-}
-
-function handlePassword() {
-  const val = document.getElementById("password-input").value;
-  const err = document.getElementById("password-error");
-  if (val === APP_PASSWORD) {
-    try { localStorage.setItem(PW_KEY, APP_PASSWORD); } catch(e) {}
-    document.getElementById("password-screen").style.display = "none";
-    proceedAfterAuth();
-  } else {
-    err.style.display = "block";
-    document.getElementById("password-input").value = "";
-    document.getElementById("password-input").focus();
-  }
-}
-
-function proceedAfterAuth() {
+async function proceedAfterAuth() {
   const creds = getCredentials();
-  if (creds.url && creds.key) {
-    initSupabase(creds.url, creds.key);
+  if (!creds.url || !creds.key) {
+    document.getElementById("setup-screen").style.display = "flex";
+    return;
+  }
+  initSupabase(creds.url, creds.key);
+  const { data: { session } } = await db.auth.getSession();
+  if (session) {
     showApp();
   } else {
-    document.getElementById("setup-screen").style.display = "flex";
+    document.getElementById("login-screen").style.display = "flex";
+    document.getElementById("login-email").focus();
   }
+}
+
+async function handleLogin() {
+  const email = document.getElementById("login-email").value.trim();
+  const password = document.getElementById("login-password").value;
+  const err = document.getElementById("login-error");
+  err.style.display = "none";
+  const { error } = await db.auth.signInWithPassword({ email, password });
+  if (error) {
+    err.textContent = "Invalid email or password.";
+    err.style.display = "block";
+    document.getElementById("login-password").value = "";
+    document.getElementById("login-password").focus();
+    return;
+  }
+  document.getElementById("login-screen").style.display = "none";
+  showApp();
+}
+
+async function handleSignOut() {
+  await db.auth.signOut();
+  document.getElementById("app").style.display = "none";
+  document.getElementById("login-screen").style.display = "flex";
+  document.getElementById("login-email").focus();
 }
 
 // ═══════════════════════════════════════════════════
@@ -449,7 +461,8 @@ function handleConnect() {
   saveCredentials(url, key);
   initSupabase(url, key);
   document.getElementById("setup-screen").style.display = "none";
-  showApp();
+  document.getElementById("login-screen").style.display = "flex";
+  document.getElementById("login-email").focus();
 }
 
 // ═══════════════════════════════════════════════════
@@ -1049,17 +1062,16 @@ document.addEventListener("keydown", e => {
 // Setup connect
 document.getElementById("setup-connect").addEventListener("click", handleConnect);
 
-// Password
-document.getElementById("password-submit").addEventListener("click", handlePassword);
-document.getElementById("password-input").addEventListener("keydown", e => { if(e.key==="Enter") handlePassword(); });
+// Login
+document.getElementById("login-submit").addEventListener("click", handleLogin);
+document.getElementById("login-password").addEventListener("keydown", e => { if(e.key==="Enter") handleLogin(); });
+document.getElementById("login-email").addEventListener("keydown", e => { if(e.key==="Enter") document.getElementById("login-password").focus(); });
+
+// Sign out
+document.getElementById("sign-out-btn").addEventListener("click", handleSignOut);
 
 // BOOT
-if (isAuthenticated()) {
-  proceedAfterAuth();
-} else {
-  document.getElementById("password-screen").style.display = "flex";
-  document.getElementById("password-input").focus();
-}
+proceedAfterAuth();
 </script>
 </body>
 </html>
