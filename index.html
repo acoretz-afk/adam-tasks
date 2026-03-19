@@ -6,8 +6,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Tasks">
-<title>✅ Case Task Manager</title>
+<meta name="apple-mobile-web-app-title" content="Case Dashboard">
+<title>⚖️ Case Dashboard</title>
 <link rel="icon" href="favicon.ico" type="image/x-icon">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -65,6 +65,14 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .add-task-btn { background:var(--accent); color:#fff; border:none; border-radius:10px; padding:9px 18px; font-size:.9rem; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:6px; }
 .add-task-btn:hover { background:#7c73ff; }
 
+/* ── ADD DROPDOWN ── */
+.add-dropdown { position:relative; }
+.add-menu { position:absolute; right:0; top:calc(100% + 6px); background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:6px; min-width:210px; z-index:200; display:none; flex-direction:column; gap:2px; box-shadow:0 8px 24px rgba(0,0,0,.4); }
+.add-menu.open { display:flex; }
+.add-menu-item { background:transparent; border:none; color:var(--text); padding:10px 14px; border-radius:8px; font-size:.9rem; cursor:pointer; text-align:left; font-family:inherit; display:flex; align-items:center; gap:10px; }
+.add-menu-item:hover { background:var(--surface3); }
+.add-menu-item .menu-icon { font-size:1rem; width:20px; text-align:center; }
+
 /* ── TABS ── */
 .tabs { display:flex; gap:0; border-bottom:1px solid var(--border); background:var(--surface); padding:0 20px; overflow-x:auto; }
 .tab { padding:12px 18px; font-size:.85rem; font-weight:500; color:var(--text3); cursor:pointer; border-bottom:2px solid transparent; white-space:nowrap; transition:all .15s; }
@@ -74,9 +82,21 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 /* ── MAIN CONTENT ── */
 .content { padding:20px; max-width:1400px; margin:0 auto; }
 
-/* ── TWO COLUMN LAYOUT ── */
-.two-col { display:grid; grid-template-columns:1fr 340px; gap:20px; align-items:start; }
+/* ── LAYOUTS ── */
+.two-col { display:grid; grid-template-columns:1fr 300px; gap:20px; align-items:start; }
 @media (max-width:900px) { .two-col { grid-template-columns:1fr; } }
+.three-col { display:grid; grid-template-columns:1fr 280px 280px; gap:20px; align-items:start; }
+@media (max-width:1200px) { .three-col { grid-template-columns:1fr 260px; } }
+@media (max-width:900px) { .three-col { grid-template-columns:1fr; } }
+
+/* ── BENEFITS PANEL ── */
+.benefits-panel { background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; position:sticky; top:100px; }
+.benefits-header { background:var(--surface2); padding:14px 16px; display:flex; align-items:center; gap:8px; border-bottom:1px solid var(--border); }
+.benefits-header-icon { font-size:1.1rem; }
+.benefits-header-title { font-size:.9rem; font-weight:700; color:#67e8f9; letter-spacing:.03em; text-transform:uppercase; }
+.benefits-header-count { margin-left:auto; background:#0e3040; color:#67e8f9; font-size:.75rem; font-weight:600; padding:2px 8px; border-radius:10px; }
+.benefits-list { padding:8px; }
+.benefits-empty { padding:20px 16px; text-align:center; color:var(--text3); font-size:.85rem; }
 
 /* ── FILINGS PANEL ── */
 .filings-panel { background:var(--filing-surface); border:1px solid var(--filing-border); border-radius:14px; overflow:hidden; position:sticky; top:100px; }
@@ -255,20 +275,25 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 <div id="app">
   <div class="top-bar">
     <div class="top-bar-left">
-      <span class="app-title">✅ Case Task Manager</span>
+      <span class="app-title">⚖️ Case Dashboard</span>
       <span class="date-display" id="date-display"></span>
     </div>
     <div class="top-bar-right">
       <button class="hide-done-btn active" id="hide-done-btn">Show Done</button>
-      <button class="add-task-btn" id="add-task-btn">+ New Task</button>
+      <div class="add-dropdown">
+        <button class="add-task-btn" id="add-btn">+ Add ▾</button>
+        <div class="add-menu" id="add-menu">
+          <button class="add-menu-item" id="add-task-item"><span class="menu-icon">📋</span> Task / Action</button>
+          <button class="add-menu-item" id="add-filing-item"><span class="menu-icon">⚖️</span> Filing</button>
+          <button class="add-menu-item" id="add-benefit-item"><span class="menu-icon">🏠</span> Benefit Application</button>
+        </div>
+      </div>
       <button class="btn-cancel" id="sign-out-btn" style="padding:9px 14px;font-size:.85rem;">Sign Out</button>
     </div>
   </div>
 
   <div class="tabs">
-    <div class="tab active" data-tab="all">All Tasks</div>
-    <div class="tab" data-tab="today">Today's Focus</div>
-    <div class="tab" data-tab="week">This Week</div>
+    <div class="tab active" data-tab="all">Overview</div>
     <div class="tab" data-tab="client">By Client</div>
   </div>
 
@@ -588,23 +613,14 @@ function renderCurrentTab() {
 
 function renderTab(tab) {
   const el = document.getElementById("tab-content");
-  const td = today();
-  const we = weekEnd();
 
   if (tab === "client") {
     renderClientView(el);
     return;
   }
 
-  // Filter tasks for this tab
-  let filtered;
-  if (tab === "today") {
-    filtered = tasks.filter(t => t.deadline <= td || (!t.deadline && t.status !== "Done"));
-  } else if (tab === "week") {
-    filtered = tasks.filter(t => t.deadline && t.deadline <= we);
-  } else {
-    filtered = [...tasks];
-  }
+  // Filter tasks
+  let filtered = [...tasks];
   if (hideDone) filtered = filtered.filter(t => t.status !== "Done");
 
   // Split into filings and regular
@@ -629,13 +645,11 @@ function renderTab(tab) {
     ? regular.map(t => renderTaskCard(t, false)).join("")
     : `<div class="empty-state"><div class="es-icon">✅</div><p>No tasks here</p></div>`;
 
-  const tabLabel = tab === "today" ? "Today's Tasks" : tab === "week" ? "This Week" : "All Tasks";
-
   el.innerHTML = `
-    <div class="two-col">
+    <div class="three-col">
       <div class="main-col">
         <div class="section-header">
-          <span class="section-title">${tabLabel}</span>
+          <span class="section-title">Tasks & Actions</span>
           <span class="section-count">${regular.filter(t=>t.status!=="Done").length} open</span>
         </div>
         <div id="task-list-regular" class="task-list">${regularHtml}</div>
@@ -647,6 +661,16 @@ function renderTab(tab) {
           <span class="filings-header-count">${filings.filter(t=>t.status!=="Done").length} open</span>
         </div>
         <div id="task-list-filings" class="filings-list">${filingsHtml}</div>
+      </div>
+      <div class="benefits-panel">
+        <div class="benefits-header">
+          <span class="benefits-header-icon">🏠</span>
+          <span class="benefits-header-title">Benefit Applications</span>
+          <span class="benefits-header-count">0 open</span>
+        </div>
+        <div class="benefits-list">
+          <div class="benefits-empty">Coming soon</div>
+        </div>
       </div>
     </div>`;
 
@@ -1038,6 +1062,12 @@ document.querySelectorAll(".tab").forEach(tab => {
   });
 });
 
+function openNewFilingModal() {
+  openNewModal();
+  document.getElementById("f-type").value = "Motion";
+  updateFilingFields();
+}
+
 document.getElementById("f-type").addEventListener("change", updateFilingFields);
 document.getElementById("hide-done-btn").addEventListener("click", () => {
   hideDone = !hideDone;
@@ -1046,7 +1076,14 @@ document.getElementById("hide-done-btn").addEventListener("click", () => {
   btn.classList.toggle("active", hideDone);
   renderCurrentTab();
 });
-document.getElementById("add-task-btn").addEventListener("click", openNewModal);
+document.getElementById("add-btn").addEventListener("click", e => {
+  e.stopPropagation();
+  document.getElementById("add-menu").classList.toggle("open");
+});
+document.addEventListener("click", () => document.getElementById("add-menu").classList.remove("open"));
+document.getElementById("add-task-item").addEventListener("click", openNewModal);
+document.getElementById("add-filing-item").addEventListener("click", openNewFilingModal);
+document.getElementById("add-benefit-item").addEventListener("click", () => showToast("Benefit applications coming soon"));
 document.getElementById("btn-cancel").addEventListener("click", closeModal);
 document.getElementById("btn-save").addEventListener("click", handleSave);
 document.getElementById("btn-delete").addEventListener("click", handleDelete);
