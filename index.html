@@ -239,6 +239,24 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .client-group-tasks { border:1px solid var(--border); border-radius:0 0 8px 8px; overflow:hidden; }
 .client-group-tasks .task-card { border-radius:0; border:none; border-bottom:1px solid var(--border); margin-bottom:0; }
 .client-group-tasks .task-card:last-child { border-bottom:none; }
+.client-apps { border:1px solid var(--border); border-top:none; border-radius:0 0 8px 8px; padding:10px; }
+.client-apps-title { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#67e8f9; margin-bottom:8px; }
+
+/* ── APP CARDS ── */
+.app-section { margin-bottom:10px; }
+.app-section-label { font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--text3); padding:0 4px 4px; display:block; }
+.app-card { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin-bottom:5px; cursor:pointer; transition:all .15s; }
+.app-card:hover { border-color:#67e8f9; background:var(--surface3); }
+.app-card-header { display:flex; align-items:flex-start; justify-content:space-between; gap:6px; margin-bottom:3px; }
+.app-type-label { font-size:.72rem; font-weight:700; color:#67e8f9; }
+.app-status-pill { font-size:.65rem; font-weight:600; padding:2px 7px; border-radius:8px; flex-shrink:0; }
+.app-client-name { font-size:.82rem; color:var(--text); font-weight:500; }
+.app-arrears { font-size:.82rem; font-weight:700; color:#67e8f9; margin-top:2px; }
+.app-meta-row { font-size:.75rem; color:var(--text3); margin-top:2px; }
+.app-warnings { display:flex; flex-direction:column; gap:2px; margin-top:5px; }
+.app-warn { font-size:.7rem; font-weight:600; padding:2px 6px; border-radius:6px; }
+.app-warn-yellow { color:#f0a500; background:rgba(240,165,0,.12); }
+.app-warn-red { color:#e05c5c; background:rgba(224,92,92,.12); }
 
 /* ── TOAST ── */
 .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:10px 20px; border-radius:10px; font-size:.85rem; z-index:9999; pointer-events:none; opacity:0; transition:opacity .2s; }
@@ -385,6 +403,94 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
   </div>
 </div>
 
+<!-- APPLICATION MODAL -->
+<div class="modal-overlay" id="app-modal-overlay">
+  <div class="modal">
+    <div class="modal-title" id="app-modal-title">New Benefit Application</div>
+    <div class="two-fields">
+      <div class="field-row">
+        <label class="field-label">Client (Last, First) *</label>
+        <input id="af-client" type="text" class="field-input" placeholder="e.g. Smith, Jane">
+      </div>
+      <div class="field-row">
+        <label class="field-label">Application Type</label>
+        <select id="af-type" class="field-select">
+          <option>One Shot Deal</option>
+          <option>FHEPS to Stay</option>
+          <option>FHEPS to Move</option>
+          <option>CityFHEPS to Stay</option>
+          <option>CityFHEPS to Move</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-row" id="af-other-type-row">
+      <label class="field-label">Benefit Type</label>
+      <select id="af-other-type" class="field-select">
+        <option>SNAP</option><option>SSI</option><option>SSDI</option>
+        <option>Cash Assistance</option><option>Moving Expenses</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <label class="field-label">Status</label>
+      <select id="af-status" class="field-select"></select>
+    </div>
+    <div class="two-fields" id="af-arrears-row">
+      <div class="field-row">
+        <label class="field-label">Arrears Amount ($)</label>
+        <input id="af-arrears" type="number" class="field-input" placeholder="0.00" step="0.01" min="0">
+      </div>
+      <div class="field-row">
+        <label class="field-label">Pay-By Deadline</label>
+        <input id="af-deadline" type="date" class="field-input">
+      </div>
+    </div>
+    <div class="two-fields" id="af-osd-row">
+      <div class="field-row">
+        <label class="field-label">Application #</label>
+        <input id="af-app-number" type="text" class="field-input" placeholder="HRA app number">
+      </div>
+      <div class="field-row">
+        <label class="field-label">Paralegal</label>
+        <input id="af-paralegal" type="text" class="field-input" placeholder="e.g. Anabel">
+      </div>
+    </div>
+    <div class="checkbox-row" id="af-ca-row">
+      <input type="checkbox" id="af-ca-prerequisite">
+      <label for="af-ca-prerequisite">Cash Assistance application needed as prerequisite</label>
+    </div>
+    <div class="two-fields" id="af-homebase-row">
+      <div class="field-row">
+        <label class="field-label">Homebase Caseworker</label>
+        <input id="af-caseworker" type="text" class="field-input" placeholder="Name">
+      </div>
+      <div class="field-row">
+        <label class="field-label">Caseworker Contact</label>
+        <input id="af-caseworker-contact" type="text" class="field-input" placeholder="Phone or email">
+      </div>
+    </div>
+    <div class="two-fields" id="af-move-row">
+      <div class="field-row">
+        <label class="field-label">Shopping Letter Expiry</label>
+        <input id="af-shopping-expiry" type="date" class="field-input">
+      </div>
+      <div class="field-row">
+        <label class="field-label">Vacate Date</label>
+        <input id="af-vacate-date" type="date" class="field-input">
+      </div>
+    </div>
+    <div class="field-row">
+      <label class="field-label">Notes</label>
+      <textarea id="af-notes" class="field-textarea" placeholder="Optional notes..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-delete" id="app-btn-delete" style="display:none">Delete</button>
+      <button class="btn-cancel" id="app-btn-cancel">Cancel</button>
+      <button class="btn-save" id="app-btn-save">Save Application</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -415,13 +521,36 @@ const TYPE_ICON = {
   "Internal/Admin":"🗂️","OPA Communication":"📨","Other":"📌"
 };
 
+const APP_TYPES = ['One Shot Deal','FHEPS to Stay','FHEPS to Move','CityFHEPS to Stay','CityFHEPS to Move','Other'];
+const APP_STATUSES = {
+  'One Shot Deal': ['Access HRA Application','Phone Interview','App # Assigned','Advocacy Packet Submitted','Pending HRA','Approved','Declined'],
+  'FHEPS to Stay': ['CA Application','Application Submitted','Pending','Approved','Declined'],
+  'CityFHEPS to Stay': ['Referred to Homebase','Application Submitted','Pending','Approved','Declined'],
+  'FHEPS to Move': ['Referred to Homebase','Shopping Letter Active','Apartment Search','Apartment Found','Package Submitted','Inspection','Move-in Scheduled','Completed'],
+  'CityFHEPS to Move': ['Referred to Homebase','Shopping Letter Active','Apartment Search','Apartment Found','Package Submitted','Inspection','Move-in Scheduled','Completed'],
+  'Other': ['In Progress','Submitted','Pending','Approved','Declined'],
+};
+const HOMEBASE_TYPES = new Set(['CityFHEPS to Stay','FHEPS to Move','CityFHEPS to Move']);
+const MOVE_TYPES = new Set(['FHEPS to Move','CityFHEPS to Move']);
+const ARREARS_TYPES = new Set(['One Shot Deal','FHEPS to Stay','CityFHEPS to Stay']);
+const RESOLVED_STATUSES = new Set(['Approved','Declined','Completed']);
+
+const APP_STATUS_STYLE = s => {
+  if (['Approved','Completed','Move-in Scheduled'].includes(s)) return {bg:'#0e1e18',color:'#4caf7d'};
+  if (['Declined'].includes(s)) return {bg:'#3a1020',color:'#f87171'};
+  if (['Pending HRA','Pending'].includes(s)) return {bg:'#2a1f08',color:'#fbbf24'};
+  return {bg:'var(--surface3)',color:'var(--text3)'};
+};
+
 // ═══════════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════════
 let db = null;
 let tasks = [];
+let applications = [];
 let currentTab = "all";
 let editingId = null;
+let editingAppId = null;
 let dragSrcId = null;
 let hideDone = true;
 
@@ -553,6 +682,57 @@ async function toggleSubtask(taskId, subIdx, done) {
 }
 
 // ═══════════════════════════════════════════════════
+// APPLICATIONS CRUD
+// ═══════════════════════════════════════════════════
+async function loadApplications() {
+  if (!db) return;
+  const { data, error } = await db.from('applications').select('*').order('created_at', {ascending:true});
+  if (error) { console.error(error); return; }
+  applications = data || [];
+  renderCurrentTab();
+}
+
+async function saveApplication(appData, id) {
+  if (!db) return;
+  if (id) {
+    const { error } = await db.from('applications').update(appData).eq('id', id);
+    if (error) { showToast('Error saving application'); return; }
+    showToast('Application updated');
+  } else {
+    const { data, error } = await db.from('applications').insert([appData]).select();
+    if (error) { showToast('Error saving application'); return; }
+    showToast('Application added');
+    if (data && data[0]) await autoGenerateTask(appData);
+  }
+  await loadApplications();
+}
+
+async function deleteApplication(id) {
+  if (!db) return;
+  await db.from('applications').delete().eq('id', id);
+  showToast('Application deleted');
+  await loadApplications();
+}
+
+async function autoGenerateTask(appData) {
+  const titles = {
+    'One Shot Deal': `Submit OSD – ${appData.client}`,
+    'FHEPS to Stay': `Submit FHEPS to Stay – ${appData.client}`,
+    'CityFHEPS to Stay': `Refer to Homebase (CityFHEPS to Stay) – ${appData.client}`,
+    'FHEPS to Move': `Refer to Homebase (FHEPS to Move) – ${appData.client}`,
+    'CityFHEPS to Move': `Refer to Homebase (CityFHEPS to Move) – ${appData.client}`,
+  };
+  const title = titles[appData.type];
+  if (!title) return;
+  await db.from('tasks').insert([{
+    title, type:'Internal/Admin', priority:'Normal',
+    client: appData.client, deadline: appData.deadline || null,
+    status:'To Do', updated_at: new Date().toISOString(),
+  }]);
+  await loadTasks();
+}
+
+// ═══════════════════════════════════════════════════
 // DATES
 // ═══════════════════════════════════════════════════
 function today() {
@@ -662,16 +842,14 @@ function renderTab(tab) {
         </div>
         <div id="task-list-filings" class="filings-list">${filingsHtml}</div>
       </div>
-      <div class="benefits-panel">
+      ${(({count,body}) => `<div class="benefits-panel">
         <div class="benefits-header">
           <span class="benefits-header-icon">🏠</span>
           <span class="benefits-header-title">Benefit Applications</span>
-          <span class="benefits-header-count">0 open</span>
+          <span class="benefits-header-count">${count} open</span>
         </div>
-        <div class="benefits-list">
-          <div class="benefits-empty">Coming soon</div>
-        </div>
-      </div>
+        <div class="benefits-list">${body}</div>
+      </div>`)(buildBenefitsPanelHtml())}
     </div>`;
 
   attachDragDrop("task-list-regular", regular);
@@ -687,6 +865,11 @@ function renderClientView(el) {
     if (!grouped[key]) grouped[key] = [];
     grouped[key].push(t);
   });
+  // Include clients who only have applications
+  applications.forEach(a => {
+    const key = a.client || "__admin__";
+    if (!grouped[key]) grouped[key] = [];
+  });
 
   const clients = Object.keys(grouped).filter(k=>k!=="__admin__").sort();
   if (grouped["__admin__"]) clients.push("__admin__");
@@ -697,21 +880,92 @@ function renderClientView(el) {
   }
 
   el.innerHTML = clients.map(client => {
-    const ts = grouped[client];
+    const ts = grouped[client] || [];
     const label = client === "__admin__" ? "Admin / No Client" : client;
     const open = ts.filter(t=>t.status!=="Done").length;
+    const clientApps = applications.filter(a => a.client === client && !RESOLVED_STATUSES.has(a.status));
+    const appsHtml = clientApps.length ? `
+      <div class="client-apps">
+        <div class="client-apps-title">Benefit Applications</div>
+        ${clientApps.map(renderAppCard).join('')}
+      </div>` : '';
     return `<div class="client-group">
       <div class="client-group-header">
         👤 ${escHtml(label)}
-        <span style="margin-left:auto;font-size:.75rem;color:var(--text3)">${open} open · ${ts.length} total</span>
+        <span style="margin-left:auto;font-size:.75rem;color:var(--text3)">${open} open · ${ts.length} tasks${clientApps.length ? ` · ${clientApps.length} app${clientApps.length>1?'s':''}` : ''}</span>
       </div>
-      <div class="client-group-tasks">
-        ${ts.map(t => renderTaskCard(t, FILING_TYPES.has(t.type))).join("")}
-      </div>
+      ${ts.length ? `<div class="client-group-tasks">${ts.map(t => renderTaskCard(t, FILING_TYPES.has(t.type))).join("")}</div>` : ''}
+      ${appsHtml}
     </div>`;
   }).join("");
 
   attachStatusHandlers();
+}
+
+function renderAppCard(app) {
+  const typeLabel = (app.type === 'Other' && app.other_type) ? `Other – ${app.other_type}` : app.type;
+  const st = APP_STATUS_STYLE(app.status);
+  const shoppingDays = daysUntil(app.shopping_letter_expiry);
+  const vacateDays = daysUntil(app.vacate_date);
+  const deadlineDays = daysUntil(app.deadline);
+  const warnings = [];
+  if (shoppingDays !== null && shoppingDays <= 30) {
+    const cls = shoppingDays <= 0 ? 'app-warn-red' : 'app-warn-yellow';
+    warnings.push(`<span class="app-warn ${cls}">🔔 Shopping letter ${shoppingDays <= 0 ? 'EXPIRED' : `expires in ${shoppingDays}d`}</span>`);
+  }
+  if (vacateDays !== null && vacateDays <= 14) {
+    const cls = vacateDays <= 0 ? 'app-warn-red' : 'app-warn-yellow';
+    warnings.push(`<span class="app-warn ${cls}">⚠️ Vacate: ${fmtDate(app.vacate_date)}${vacateDays > 0 ? ` · ${vacateDays}d` : ' · passed'}</span>`);
+  }
+  if (deadlineDays !== null && deadlineDays <= 14) {
+    const cls = deadlineDays <= 0 ? 'app-warn-red' : 'app-warn-yellow';
+    warnings.push(`<span class="app-warn ${cls}">⚠️ Pay-by: ${fmtDate(app.deadline)}${deadlineDays > 0 ? ` · ${deadlineDays}d` : ' · overdue'}</span>`);
+  }
+  const metaParts = [];
+  if (app.paralegal) metaParts.push(`👤 ${escHtml(app.paralegal)}`);
+  if (app.homebase_caseworker) metaParts.push(`🏢 ${escHtml(app.homebase_caseworker)}`);
+  if (app.shopping_letter_expiry && shoppingDays > 30) metaParts.push(`🔔 Letter exp. ${fmtDate(app.shopping_letter_expiry)}`);
+  if (app.vacate_date && vacateDays > 14) metaParts.push(`📦 Vacate ${fmtDate(app.vacate_date)}`);
+  if (app.deadline && deadlineDays > 14) metaParts.push(`📅 Pay-by ${fmtDate(app.deadline)}`);
+  return `<div class="app-card" onclick="openEditAppModal('${app.id}')">
+    <div class="app-card-header">
+      <span class="app-type-label">${escHtml(typeLabel)}</span>
+      <span class="app-status-pill" style="background:${st.bg};color:${st.color}">${escHtml(app.status)}</span>
+    </div>
+    <div class="app-client-name">👤 ${escHtml(app.client)}</div>
+    ${app.arrears ? `<div class="app-arrears">$${Number(app.arrears).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})}</div>` : ''}
+    ${metaParts.length ? `<div class="app-meta-row">${metaParts.join(' · ')}</div>` : ''}
+    ${warnings.length ? `<div class="app-warnings">${warnings.join('')}</div>` : ''}
+  </div>`;
+}
+
+function buildBenefitsPanelHtml() {
+  const active = applications.filter(a => !RESOLVED_STATUSES.has(a.status));
+  const ACTION_EARLY = {
+    'One Shot Deal': ['Access HRA Application','Phone Interview','App # Assigned','Advocacy Packet Submitted'],
+    'FHEPS to Stay': ['CA Application','Application Submitted'],
+    'CityFHEPS to Stay': ['Referred to Homebase','Application Submitted'],
+    'FHEPS to Move': ['Referred to Homebase'],
+    'CityFHEPS to Move': ['Referred to Homebase'],
+    'Other': ['In Progress','Submitted'],
+  };
+  const actionNeeded = active.filter(a => (ACTION_EARLY[a.type]||[]).includes(a.status));
+  const pending = active.filter(a => ['Pending','Pending HRA'].includes(a.status));
+  const housingSearch = active.filter(a => MOVE_TYPES.has(a.type) && !['Referred to Homebase'].includes(a.status));
+
+  const section = (label, apps) => apps.length ? `
+    <div class="app-section">
+      <span class="app-section-label">${label}</span>
+      ${apps.map(renderAppCard).join('')}
+    </div>` : '';
+
+  const body = [
+    section('🔴 Action Needed', actionNeeded),
+    section('⏳ Pending Decision', pending),
+    section('🏠 Housing Search', housingSearch),
+  ].join('') || '<div class="benefits-empty">No active applications</div>';
+
+  return { count: active.length, body };
 }
 
 function renderTaskCard(t, isFiling) {
@@ -883,6 +1137,118 @@ function attachStatusHandlers() {
 // ═══════════════════════════════════════════════════
 // MODAL — NEW TASK
 // ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+// APPLICATION MODAL
+// ═══════════════════════════════════════════════════
+function setDisplay(id, visible, displayType='block') {
+  document.getElementById(id).style.display = visible ? displayType : 'none';
+}
+
+function updateAppFields() {
+  const type = document.getElementById('af-type').value;
+  setDisplay('af-other-type-row', type === 'Other');
+  setDisplay('af-arrears-row', ARREARS_TYPES.has(type), 'grid');
+  setDisplay('af-osd-row', type === 'One Shot Deal', 'grid');
+  setDisplay('af-ca-row', type === 'FHEPS to Stay', 'flex');
+  setDisplay('af-homebase-row', HOMEBASE_TYPES.has(type), 'grid');
+  setDisplay('af-move-row', MOVE_TYPES.has(type), 'grid');
+  const statuses = APP_STATUSES[type] || [];
+  const sel = document.getElementById('af-status');
+  const cur = sel.value;
+  sel.innerHTML = statuses.map(s => `<option${s===cur?' selected':''}>${s}</option>`).join('');
+}
+
+function clearAppModal() {
+  document.getElementById('af-client').value = '';
+  document.getElementById('af-type').value = 'One Shot Deal';
+  document.getElementById('af-other-type').value = 'SNAP';
+  document.getElementById('af-arrears').value = '';
+  document.getElementById('af-deadline').value = '';
+  document.getElementById('af-app-number').value = '';
+  document.getElementById('af-paralegal').value = '';
+  document.getElementById('af-ca-prerequisite').checked = false;
+  document.getElementById('af-caseworker').value = '';
+  document.getElementById('af-caseworker-contact').value = '';
+  document.getElementById('af-shopping-expiry').value = '';
+  document.getElementById('af-vacate-date').value = '';
+  document.getElementById('af-notes').value = '';
+}
+
+function openNewAppModal() {
+  editingAppId = null;
+  document.getElementById('app-modal-title').textContent = 'New Benefit Application';
+  clearAppModal();
+  document.getElementById('app-btn-delete').style.display = 'none';
+  document.getElementById('app-btn-save').textContent = 'Save Application';
+  updateAppFields();
+  document.getElementById('app-modal-overlay').style.display = 'flex';
+  document.getElementById('af-client').focus();
+}
+
+function openEditAppModal(id) {
+  const app = applications.find(a => a.id === id);
+  if (!app) return;
+  editingAppId = id;
+  document.getElementById('app-modal-title').textContent = 'Edit Application';
+  clearAppModal();
+  document.getElementById('af-client').value = app.client || '';
+  document.getElementById('af-type').value = app.type || 'One Shot Deal';
+  document.getElementById('af-other-type').value = app.other_type || 'SNAP';
+  document.getElementById('af-arrears').value = app.arrears || '';
+  document.getElementById('af-deadline').value = app.deadline || '';
+  document.getElementById('af-app-number').value = app.application_number || '';
+  document.getElementById('af-paralegal').value = app.paralegal || '';
+  document.getElementById('af-ca-prerequisite').checked = !!app.ca_prerequisite;
+  document.getElementById('af-caseworker').value = app.homebase_caseworker || '';
+  document.getElementById('af-caseworker-contact').value = app.homebase_contact || '';
+  document.getElementById('af-shopping-expiry').value = app.shopping_letter_expiry || '';
+  document.getElementById('af-vacate-date').value = app.vacate_date || '';
+  document.getElementById('af-notes').value = app.notes || '';
+  document.getElementById('app-btn-delete').style.display = 'inline-block';
+  document.getElementById('app-btn-save').textContent = 'Update Application';
+  updateAppFields();
+  document.getElementById('app-modal-overlay').style.display = 'flex';
+  document.getElementById('af-client').focus();
+}
+
+async function handleAppSave() {
+  const client = document.getElementById('af-client').value.trim();
+  if (!client) { document.getElementById('af-client').focus(); return; }
+  const type = document.getElementById('af-type').value;
+  const appData = {
+    client, type,
+    status: document.getElementById('af-status').value,
+    other_type: type === 'Other' ? document.getElementById('af-other-type').value : null,
+    arrears: ARREARS_TYPES.has(type) ? (parseFloat(document.getElementById('af-arrears').value) || null) : null,
+    deadline: ARREARS_TYPES.has(type) ? (document.getElementById('af-deadline').value || null) : null,
+    application_number: type === 'One Shot Deal' ? (document.getElementById('af-app-number').value.trim() || null) : null,
+    paralegal: type === 'One Shot Deal' ? (document.getElementById('af-paralegal').value.trim() || null) : null,
+    ca_prerequisite: type === 'FHEPS to Stay' ? document.getElementById('af-ca-prerequisite').checked : false,
+    homebase_caseworker: HOMEBASE_TYPES.has(type) ? (document.getElementById('af-caseworker').value.trim() || null) : null,
+    homebase_contact: HOMEBASE_TYPES.has(type) ? (document.getElementById('af-caseworker-contact').value.trim() || null) : null,
+    shopping_letter_expiry: MOVE_TYPES.has(type) ? (document.getElementById('af-shopping-expiry').value || null) : null,
+    vacate_date: MOVE_TYPES.has(type) ? (document.getElementById('af-vacate-date').value || null) : null,
+    notes: document.getElementById('af-notes').value.trim() || null,
+    updated_at: new Date().toISOString(),
+  };
+  const idToSave = editingAppId;
+  closeAppModal();
+  await saveApplication(appData, idToSave);
+}
+
+async function handleAppDelete() {
+  if (!editingAppId) return;
+  if (!confirm('Delete this application?')) return;
+  const id = editingAppId;
+  closeAppModal();
+  await deleteApplication(id);
+}
+
+function closeAppModal() {
+  document.getElementById('app-modal-overlay').style.display = 'none';
+  editingAppId = null;
+}
+
 function updateFilingFields() {
   const type = document.getElementById("f-type").value;
   const isFiling = FILING_TYPES.has(type);
@@ -1049,7 +1415,9 @@ function showApp() {
   document.getElementById("app").style.display = "block";
   setDateDisplay();
   loadTasks();
+  loadApplications();
   setInterval(loadTasks, 30000);
+  setInterval(loadApplications, 30000);
 }
 
 // Tab switching
@@ -1083,16 +1451,22 @@ document.getElementById("add-btn").addEventListener("click", e => {
 document.addEventListener("click", () => document.getElementById("add-menu").classList.remove("open"));
 document.getElementById("add-task-item").addEventListener("click", openNewModal);
 document.getElementById("add-filing-item").addEventListener("click", openNewFilingModal);
-document.getElementById("add-benefit-item").addEventListener("click", () => showToast("Benefit applications coming soon"));
+document.getElementById("add-benefit-item").addEventListener("click", openNewAppModal);
 document.getElementById("btn-cancel").addEventListener("click", closeModal);
 document.getElementById("btn-save").addEventListener("click", handleSave);
 document.getElementById("btn-delete").addEventListener("click", handleDelete);
 document.getElementById("add-subtask-btn").addEventListener("click", addSubtask);
 document.getElementById("modal-overlay").addEventListener("click", e => { if(e.target===e.currentTarget) closeModal(); });
 
+document.getElementById('af-type').addEventListener('change', updateAppFields);
+document.getElementById('app-btn-save').addEventListener('click', handleAppSave);
+document.getElementById('app-btn-delete').addEventListener('click', handleAppDelete);
+document.getElementById('app-btn-cancel').addEventListener('click', closeAppModal);
+document.getElementById('app-modal-overlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeAppModal(); });
+
 // Keyboard shortcuts
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape") closeModal();
+  if (e.key === "Escape") { closeModal(); closeAppModal(); }
   if (e.key === "Enter" && e.metaKey) handleSave();
 });
 
