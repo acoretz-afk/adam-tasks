@@ -257,6 +257,32 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .app-warn-yellow { color:#f0a500; background:rgba(240,165,0,.12); }
 .app-warn-red { color:#e05c5c; background:rgba(224,92,92,.12); }
 
+/* ── CASES ── */
+.case-filter-bar { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
+.case-filter-btn { background:var(--surface2); border:1px solid var(--border); color:var(--text2); border-radius:8px; padding:7px 14px; font-size:.82rem; font-weight:500; cursor:pointer; transition:all .15s; }
+.case-filter-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+.case-type-badge { display:inline-flex; align-items:center; font-size:.72rem; font-weight:700; padding:2px 9px; border-radius:6px; flex-shrink:0; }
+.case-type-NP { background:rgba(251,191,36,.18); color:#fbbf24; }
+.case-type-HO { background:rgba(96,165,250,.18); color:#60a5fa; }
+.case-type-HP { background:rgba(167,139,250,.18); color:#a78bfa; }
+.case-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-bottom:8px; cursor:pointer; transition:all .15s; }
+.case-card:hover { border-color:var(--accent); background:var(--surface2); }
+.case-card-top { display:flex; align-items:flex-start; gap:8px; margin-bottom:5px; flex-wrap:wrap; }
+.case-client { font-size:.95rem; font-weight:600; flex:1; min-width:0; }
+.case-index { font-size:.72rem; color:var(--text3); font-family:monospace; white-space:nowrap; }
+.case-party-row { font-size:.78rem; color:var(--text2); margin-bottom:3px; line-height:1.45; }
+.case-meta-row { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:7px; }
+.case-date-chip { font-size:.71rem; font-weight:600; padding:2px 7px; border-radius:6px; }
+.case-date-ok { background:var(--surface3); color:var(--text3); }
+.case-date-warn { background:rgba(240,165,0,.15); color:#f0a500; }
+.case-date-urgent { background:rgba(224,92,92,.15); color:#f87171; }
+.case-status-pill { font-size:.68rem; font-weight:700; padding:2px 9px; border-radius:8px; flex-shrink:0; }
+.status-pill-active { background:rgba(76,175,125,.15); color:#4caf7d; }
+.status-pill-ready { background:rgba(249,115,22,.15); color:#fb923c; }
+.status-pill-closed { background:var(--surface3); color:var(--text3); }
+.case-notes-text { font-size:.75rem; color:var(--text3); margin-top:5px; line-height:1.4; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden; }
+.case-noe-badge { font-size:.68rem; font-weight:700; color:#f87171; background:rgba(224,92,92,.12); padding:2px 6px; border-radius:5px; }
+
 /* ── CALENDAR ── */
 .cal-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
 .cal-nav-title { font-size:1.1rem; font-weight:700; }
@@ -325,6 +351,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
           <button class="add-menu-item" id="add-task-item"><span class="menu-icon">📋</span> Task / Action</button>
           <button class="add-menu-item" id="add-filing-item"><span class="menu-icon">⚖️</span> Filing</button>
           <button class="add-menu-item" id="add-benefit-item"><span class="menu-icon">🏠</span> Benefit Application</button>
+          <button class="add-menu-item" id="add-case-item"><span class="menu-icon">📁</span> Case</button>
           <button class="add-menu-item" id="add-court-item"><span class="menu-icon">🏛️</span> Court Appearance</button>
         </div>
       </div>
@@ -334,6 +361,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 
   <div class="tabs">
     <div class="tab active" data-tab="all">Overview</div>
+    <div class="tab" data-tab="cases">Cases</div>
     <div class="tab" data-tab="client">By Client</div>
     <div class="tab" data-tab="calendar">Calendar</div>
   </div>
@@ -512,6 +540,122 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
   </div>
 </div>
 
+<!-- CASE MODAL -->
+<div class="modal-overlay" id="case-modal-overlay">
+  <div class="modal">
+    <div class="modal-title" id="case-modal-title">New Case</div>
+
+    <div class="two-fields">
+      <div class="field-row">
+        <label class="field-label">Client (Last, First) *</label>
+        <input id="case-client" type="text" class="field-input" placeholder="e.g. Smith, Jane">
+      </div>
+      <div class="field-row">
+        <label class="field-label">Case Type *</label>
+        <select id="case-type" class="field-select">
+          <option value="NP">NP — Nonpayment</option>
+          <option value="HO">HO — Holdover</option>
+          <option value="HP">HP — HP Action</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="two-fields">
+      <div class="field-row">
+        <label class="field-label">Index #</label>
+        <input id="case-index" type="text" class="field-input" placeholder="e.g. LT-311664-24/QU">
+      </div>
+      <div class="field-row">
+        <label class="field-label">Part</label>
+        <input id="case-part" type="text" class="field-input" placeholder="e.g. A, B, O, IP, SPP">
+      </div>
+    </div>
+
+    <div class="field-row">
+      <label class="field-label">Landlord / Petitioner</label>
+      <input id="case-landlord" type="text" class="field-input" placeholder="Landlord or petitioner name">
+    </div>
+
+    <div class="field-row">
+      <label class="field-label">OPA (Opposing Attorney)</label>
+      <input id="case-opa" type="text" class="field-input" placeholder="Firm and/or attorney name">
+    </div>
+
+    <div class="two-fields">
+      <div class="field-row">
+        <label class="field-label">Status</label>
+        <select id="case-status" class="field-select">
+          <option value="Active">Active</option>
+          <option value="Ready to Close">Ready to Close</option>
+          <option value="Closed">Closed</option>
+        </select>
+      </div>
+      <div class="field-row" id="case-resolution-row" style="display:none">
+        <label class="field-label">Resolution</label>
+        <input id="case-resolution" type="text" class="field-input" placeholder="e.g. Discontinued, Settled per stip">
+      </div>
+    </div>
+
+    <div id="case-closing-row" style="display:none">
+      <div style="display:flex;gap:20px;margin-bottom:16px;flex-wrap:wrap;">
+        <div class="checkbox-row" style="margin:0">
+          <input type="checkbox" id="case-letter-drafted">
+          <label for="case-letter-drafted">Closing letter drafted</label>
+        </div>
+        <div class="checkbox-row" style="margin:0">
+          <input type="checkbox" id="case-letter-mailed">
+          <label for="case-letter-mailed">Closing letter mailed</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <label class="field-label">Court / NTO Notes</label>
+      <input id="case-court-notes" type="text" class="field-input" placeholder="e.g. PTC, Sent to Part X, OSC hearing">
+    </div>
+
+    <div class="field-row">
+      <label class="field-label">Stipulation Notes</label>
+      <textarea id="case-stip-notes" class="field-textarea" style="min-height:55px" placeholder="Stip terms, amounts owed, conditions..."></textarea>
+    </div>
+
+    <div class="two-fields">
+      <div class="field-row">
+        <label class="field-label">Payment Date (stip)</label>
+        <input id="case-payment-date" type="date" class="field-input">
+      </div>
+      <div class="field-row">
+        <label class="field-label">Vacate Date (stip)</label>
+        <input id="case-vacate-date" type="date" class="field-input">
+      </div>
+    </div>
+
+    <div class="two-fields">
+      <div class="field-row">
+        <label class="field-label">Earliest Eviction Date</label>
+        <input id="case-eviction-date" type="date" class="field-input">
+      </div>
+      <div class="field-row" style="display:flex;flex-direction:column;justify-content:flex-end;">
+        <div class="checkbox-row" style="margin-bottom:0;padding-bottom:10px;">
+          <input type="checkbox" id="case-noe-served">
+          <label for="case-noe-served">NOE Served</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <label class="field-label">Notes</label>
+      <textarea id="case-notes" class="field-textarea" style="min-height:55px" placeholder="General case notes..."></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-delete" id="case-btn-delete" style="display:none">Delete</button>
+      <button class="btn-cancel" id="case-btn-cancel">Cancel</button>
+      <button class="btn-save" id="case-btn-save">Save Case</button>
+    </div>
+  </div>
+</div>
+
 <!-- COURT APPEARANCE MODAL -->
 <div class="modal-overlay" id="court-modal-overlay">
   <div class="modal">
@@ -606,12 +750,15 @@ let db = null;
 let tasks = [];
 let applications = [];
 let courtAppearances = [];
+let cases = [];
 let currentTab = "all";
 let editingId = null;
 let editingAppId = null;
 let editingCourtId = null;
+let editingCaseId = null;
 let dragSrcId = null;
 let hideDone = true;
+let caseFilter = "active";
 let calYear = new Date().getFullYear();
 let calMonth = new Date().getMonth();
 
@@ -740,6 +887,38 @@ async function toggleSubtask(taskId, subIdx, done) {
   await db.from("tasks").update({ subtasks: newVal }).eq("id", taskId);
   t.subtasks = newVal;
   renderCurrentTab();
+}
+
+// ═══════════════════════════════════════════════════
+// CASES CRUD
+// ═══════════════════════════════════════════════════
+async function loadCases() {
+  if (!db) return;
+  const { data, error } = await db.from('cases').select('*').order('client', {ascending:true});
+  if (error) { console.error(error); return; }
+  cases = data || [];
+  renderCurrentTab();
+}
+
+async function saveCase(caseData, id) {
+  if (!db) return;
+  if (id) {
+    const { error } = await db.from('cases').update(caseData).eq('id', id);
+    if (error) { showToast('Error saving case'); return; }
+    showToast('Case updated');
+  } else {
+    const { error } = await db.from('cases').insert([caseData]);
+    if (error) { showToast('Error saving case'); return; }
+    showToast('Case added');
+  }
+  await loadCases();
+}
+
+async function deleteCase(id) {
+  if (!db) return;
+  await db.from('cases').delete().eq('id', id);
+  showToast('Case deleted');
+  await loadCases();
 }
 
 // ═══════════════════════════════════════════════════
@@ -879,6 +1058,11 @@ function renderTab(tab) {
     return;
   }
 
+  if (tab === "cases") {
+    renderCasesTab(el);
+    return;
+  }
+
   // Filter tasks
   let filtered = [...tasks];
   if (hideDone) filtered = filtered.filter(t => t.status !== "Done");
@@ -935,6 +1119,107 @@ function renderTab(tab) {
   attachDragDrop("task-list-regular", regular);
   attachDragDrop("task-list-filings", filings);
   attachStatusHandlers();
+}
+
+// ═══════════════════════════════════════════════════
+// CASES RENDER
+// ═══════════════════════════════════════════════════
+function renderCasesTab(el) {
+  const active = cases.filter(c => c.status === 'Active');
+  const ready = cases.filter(c => c.status === 'Ready to Close');
+  const closed = cases.filter(c => c.status === 'Closed');
+
+  let visible;
+  if (caseFilter === 'active') visible = active;
+  else if (caseFilter === 'ready') visible = ready;
+  else if (caseFilter === 'closed') visible = closed;
+  else visible = [...active, ...ready, ...closed];
+
+  const filterBar = `<div class="case-filter-bar">
+    <button class="case-filter-btn${caseFilter==='active'?' active':''}" onclick="setCaseFilter('active')">Active (${active.length})</button>
+    <button class="case-filter-btn${caseFilter==='ready'?' active':''}" onclick="setCaseFilter('ready')">Ready to Close (${ready.length})</button>
+    <button class="case-filter-btn${caseFilter==='closed'?' active':''}" onclick="setCaseFilter('closed')">Closed (${closed.length})</button>
+    <button class="case-filter-btn${caseFilter==='all'?' active':''}" onclick="setCaseFilter('all')">All (${cases.length})</button>
+  </div>`;
+
+  const cardsHtml = visible.length
+    ? visible.map(renderCaseCard).join('')
+    : `<div class="empty-state"><div class="es-icon">📁</div><p>No cases here</p></div>`;
+
+  el.innerHTML = filterBar + cardsHtml;
+}
+
+function setCaseFilter(f) {
+  caseFilter = f;
+  renderCurrentTab();
+}
+
+function renderCaseCard(c) {
+  const typeBadge = `<span class="case-type-badge case-type-${c.case_type}">${c.case_type}</span>`;
+
+  const statusClass = c.status === 'Active' ? 'status-pill-active' : c.status === 'Ready to Close' ? 'status-pill-ready' : 'status-pill-closed';
+  const statusPill = `<span class="case-status-pill ${statusClass}">${escHtml(c.status)}</span>`;
+
+  const partyParts = [];
+  if (c.landlord) partyParts.push(`<strong style="color:var(--text)">vs.</strong> ${escHtml(c.landlord)}`);
+  if (c.opa) partyParts.push(`OPA: ${escHtml(c.opa)}`);
+  const partyRow = partyParts.length ? `<div class="case-party-row">${partyParts.join(' &nbsp;·&nbsp; ')}</div>` : '';
+
+  const chips = [];
+  if (c.part) chips.push(`<span class="case-date-chip case-date-ok">Part ${escHtml(c.part)}</span>`);
+
+  // Payment date
+  if (c.payment_date) {
+    const d = daysUntil(c.payment_date);
+    const cls = d < 0 ? 'case-date-urgent' : d <= 7 ? 'case-date-warn' : 'case-date-ok';
+    const lbl = d < 0 ? `${Math.abs(d)}d overdue` : d === 0 ? 'Today' : `${d}d`;
+    chips.push(`<span class="case-date-chip ${cls}">💰 Pay ${fmtDate(c.payment_date)} · ${lbl}</span>`);
+  }
+
+  // Vacate date
+  if (c.vacate_date) {
+    const d = daysUntil(c.vacate_date);
+    const cls = d < 0 ? 'case-date-urgent' : d <= 14 ? 'case-date-warn' : 'case-date-ok';
+    const lbl = d < 0 ? `${Math.abs(d)}d ago` : d === 0 ? 'Today' : `${d}d`;
+    chips.push(`<span class="case-date-chip ${cls}">📦 Vacate ${fmtDate(c.vacate_date)} · ${lbl}</span>`);
+  }
+
+  // Eviction date
+  if (c.earliest_eviction_date) {
+    const d = daysUntil(c.earliest_eviction_date);
+    const cls = d < 0 ? 'case-date-urgent' : d <= 14 ? 'case-date-warn' : 'case-date-ok';
+    const lbl = d < 0 ? `${Math.abs(d)}d ago` : d === 0 ? 'Today' : `${d}d`;
+    chips.push(`<span class="case-date-chip ${cls}">⚠️ Eviction ${fmtDate(c.earliest_eviction_date)} · ${lbl}</span>`);
+  }
+
+  if (c.noe_served) chips.push(`<span class="case-noe-badge">NOE Served</span>`);
+
+  // Closing letter status
+  if (c.status !== 'Active') {
+    if (c.closing_letter_mailed) chips.push(`<span class="case-date-chip case-date-ok">✉️ Letter mailed</span>`);
+    else if (c.closing_letter_drafted) chips.push(`<span class="case-date-chip case-date-warn">📝 Letter drafted</span>`);
+    else chips.push(`<span class="case-date-chip case-date-urgent">📝 Letter needed</span>`);
+  }
+
+  const metaRow = chips.length ? `<div class="case-meta-row">${chips.join('')}</div>` : '';
+
+  const courtNote = c.court_notes ? `<div class="case-notes-text">🏛️ ${escHtml(c.court_notes)}</div>` : '';
+  const stipNote = c.stip_notes ? `<div class="case-notes-text">📋 ${escHtml(c.stip_notes)}</div>` : '';
+  const resolution = c.resolution ? `<div class="case-notes-text" style="color:var(--text2)">→ ${escHtml(c.resolution)}</div>` : '';
+
+  return `<div class="case-card" onclick="openEditCaseModal('${c.id}')">
+    <div class="case-card-top">
+      ${typeBadge}
+      <span class="case-client">${escHtml(c.client)}</span>
+      <span class="case-index">${escHtml(c.index_number || '')}</span>
+      ${statusPill}
+    </div>
+    ${partyRow}
+    ${metaRow}
+    ${courtNote}
+    ${stipNote}
+    ${resolution}
+  </div>`;
 }
 
 function buildCalendarEvents() {
@@ -1435,6 +1720,114 @@ function closeAppModal() {
 }
 
 // ═══════════════════════════════════════════════════
+// CASE MODAL
+// ═══════════════════════════════════════════════════
+function updateCaseFields() {
+  const status = document.getElementById('case-status').value;
+  const isClosed = status === 'Closed';
+  const isClosing = status === 'Ready to Close' || isClosed;
+  document.getElementById('case-resolution-row').style.display = isClosed ? 'block' : 'none';
+  document.getElementById('case-closing-row').style.display = isClosing ? 'block' : 'none';
+}
+
+function clearCaseModal() {
+  ['case-client','case-index','case-part','case-landlord','case-opa',
+   'case-resolution','case-court-notes','case-stip-notes','case-notes'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  ['case-payment-date','case-vacate-date','case-eviction-date'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('case-type').value = 'NP';
+  document.getElementById('case-status').value = 'Active';
+  document.getElementById('case-noe-served').checked = false;
+  document.getElementById('case-letter-drafted').checked = false;
+  document.getElementById('case-letter-mailed').checked = false;
+}
+
+function openNewCaseModal() {
+  editingCaseId = null;
+  document.getElementById('case-modal-title').textContent = 'New Case';
+  clearCaseModal();
+  document.getElementById('case-btn-delete').style.display = 'none';
+  document.getElementById('case-btn-save').textContent = 'Save Case';
+  updateCaseFields();
+  document.getElementById('case-modal-overlay').style.display = 'flex';
+  document.getElementById('case-client').focus();
+}
+
+function openEditCaseModal(id) {
+  const c = cases.find(x => x.id === id);
+  if (!c) return;
+  editingCaseId = id;
+  document.getElementById('case-modal-title').textContent = 'Edit Case';
+  clearCaseModal();
+  document.getElementById('case-client').value = c.client || '';
+  document.getElementById('case-type').value = c.case_type || 'NP';
+  document.getElementById('case-index').value = c.index_number || '';
+  document.getElementById('case-part').value = c.part || '';
+  document.getElementById('case-landlord').value = c.landlord || '';
+  document.getElementById('case-opa').value = c.opa || '';
+  document.getElementById('case-status').value = c.status || 'Active';
+  document.getElementById('case-resolution').value = c.resolution || '';
+  document.getElementById('case-court-notes').value = c.court_notes || '';
+  document.getElementById('case-stip-notes').value = c.stip_notes || '';
+  document.getElementById('case-payment-date').value = c.payment_date || '';
+  document.getElementById('case-vacate-date').value = c.vacate_date || '';
+  document.getElementById('case-eviction-date').value = c.earliest_eviction_date || '';
+  document.getElementById('case-noe-served').checked = !!c.noe_served;
+  document.getElementById('case-letter-drafted').checked = !!c.closing_letter_drafted;
+  document.getElementById('case-letter-mailed').checked = !!c.closing_letter_mailed;
+  document.getElementById('case-notes').value = c.notes || '';
+  document.getElementById('case-btn-delete').style.display = 'inline-block';
+  document.getElementById('case-btn-save').textContent = 'Update Case';
+  updateCaseFields();
+  document.getElementById('case-modal-overlay').style.display = 'flex';
+  document.getElementById('case-client').focus();
+}
+
+async function handleCaseSave() {
+  const client = document.getElementById('case-client').value.trim();
+  if (!client) { document.getElementById('case-client').focus(); return; }
+  const caseData = {
+    client,
+    case_type: document.getElementById('case-type').value,
+    index_number: document.getElementById('case-index').value.trim() || null,
+    part: document.getElementById('case-part').value.trim() || null,
+    landlord: document.getElementById('case-landlord').value.trim() || null,
+    opa: document.getElementById('case-opa').value.trim() || null,
+    status: document.getElementById('case-status').value,
+    resolution: document.getElementById('case-resolution').value.trim() || null,
+    court_notes: document.getElementById('case-court-notes').value.trim() || null,
+    stip_notes: document.getElementById('case-stip-notes').value.trim() || null,
+    payment_date: document.getElementById('case-payment-date').value || null,
+    vacate_date: document.getElementById('case-vacate-date').value || null,
+    earliest_eviction_date: document.getElementById('case-eviction-date').value || null,
+    noe_served: document.getElementById('case-noe-served').checked,
+    closing_letter_drafted: document.getElementById('case-letter-drafted').checked,
+    closing_letter_mailed: document.getElementById('case-letter-mailed').checked,
+    notes: document.getElementById('case-notes').value.trim() || null,
+    updated_at: new Date().toISOString(),
+  };
+  const idToSave = editingCaseId;
+  closeCaseModal();
+  await saveCase(caseData, idToSave);
+}
+
+async function handleCaseDelete() {
+  if (!editingCaseId) return;
+  if (!confirm('Delete this case? This cannot be undone.')) return;
+  const id = editingCaseId;
+  closeCaseModal();
+  await deleteCase(id);
+}
+
+function closeCaseModal() {
+  document.getElementById('case-modal-overlay').style.display = 'none';
+  editingCaseId = null;
+}
+
+// ═══════════════════════════════════════════════════
 // COURT APPEARANCE MODAL
 // ═══════════════════════════════════════════════════
 function openNewCourtModal() {
@@ -1670,9 +2063,11 @@ function showApp() {
   loadTasks();
   loadApplications();
   loadCourtAppearances();
+  loadCases();
   setInterval(loadTasks, 30000);
   setInterval(loadApplications, 30000);
   setInterval(loadCourtAppearances, 30000);
+  setInterval(loadCases, 30000);
 }
 
 // Tab switching
@@ -1719,6 +2114,13 @@ document.getElementById('app-btn-delete').addEventListener('click', handleAppDel
 document.getElementById('app-btn-cancel').addEventListener('click', closeAppModal);
 document.getElementById('app-modal-overlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeAppModal(); });
 
+document.getElementById('add-case-item').addEventListener('click', openNewCaseModal);
+document.getElementById('case-status').addEventListener('change', updateCaseFields);
+document.getElementById('case-btn-save').addEventListener('click', handleCaseSave);
+document.getElementById('case-btn-delete').addEventListener('click', handleCaseDelete);
+document.getElementById('case-btn-cancel').addEventListener('click', closeCaseModal);
+document.getElementById('case-modal-overlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeCaseModal(); });
+
 document.getElementById('add-court-item').addEventListener('click', openNewCourtModal);
 document.getElementById('court-btn-save').addEventListener('click', handleCourtSave);
 document.getElementById('court-btn-delete').addEventListener('click', handleCourtDelete);
@@ -1727,7 +2129,7 @@ document.getElementById('court-modal-overlay').addEventListener('click', e => { 
 
 // Keyboard shortcuts
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape") { closeModal(); closeAppModal(); closeCourtModal(); }
+  if (e.key === "Escape") { closeModal(); closeAppModal(); closeCourtModal(); closeCaseModal(); }
   if (e.key === "Enter" && e.metaKey) handleSave();
 });
 
