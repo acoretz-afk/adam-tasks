@@ -703,7 +703,6 @@ async function saveApplication(appData, id) {
     const { data, error } = await db.from('applications').insert([appData]).select();
     if (error) { showToast('Error saving application'); return; }
     showToast('Application added');
-    if (data && data[0]) await autoGenerateTask(appData);
   }
   await loadApplications();
 }
@@ -715,23 +714,6 @@ async function deleteApplication(id) {
   await loadApplications();
 }
 
-async function autoGenerateTask(appData) {
-  const titles = {
-    'One Shot Deal': `Submit OSD – ${appData.client}`,
-    'FHEPS to Stay': `Submit FHEPS to Stay – ${appData.client}`,
-    'CityFHEPS to Stay': `Refer to Homebase (CityFHEPS to Stay) – ${appData.client}`,
-    'FHEPS to Move': `Refer to Homebase (FHEPS to Move) – ${appData.client}`,
-    'CityFHEPS to Move': `Refer to Homebase (CityFHEPS to Move) – ${appData.client}`,
-  };
-  const title = titles[appData.type];
-  if (!title) return;
-  await db.from('tasks').insert([{
-    title, type:'Internal/Admin', priority:'Normal',
-    client: appData.client, deadline: appData.deadline || null,
-    status:'To Do', updated_at: new Date().toISOString(),
-  }]);
-  await loadTasks();
-}
 
 // ═══════════════════════════════════════════════════
 // DATES
