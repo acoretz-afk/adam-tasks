@@ -257,6 +257,28 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .app-warn-yellow { color:#f0a500; background:rgba(240,165,0,.12); }
 .app-warn-red { color:#e05c5c; background:rgba(224,92,92,.12); }
 
+/* ── CALENDAR ── */
+.cal-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+.cal-nav-title { font-size:1.1rem; font-weight:700; }
+.cal-nav-btn { background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:6px 14px; cursor:pointer; font-size:.9rem; }
+.cal-nav-btn:hover { background:var(--surface3); }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
+.cal-dow { text-align:center; font-size:.72rem; font-weight:700; color:var(--text3); text-transform:uppercase; padding:6px 0; }
+.cal-day { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:6px 8px; min-height:90px; overflow:hidden; }
+.cal-day.other-month { opacity:.3; }
+.cal-day.today { border-color:var(--accent2); }
+.cal-day-num { font-size:.78rem; font-weight:600; color:var(--text3); margin-bottom:4px; }
+.cal-day.today .cal-day-num { color:var(--accent2); font-weight:700; }
+.cal-chip { font-size:.67rem; font-weight:600; border-radius:5px; padding:2px 5px; margin-bottom:2px; cursor:default; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.35; display:block; }
+.cal-chip-court { background:rgba(108,99,255,.3); color:#c4b5fd; cursor:pointer; }
+.cal-chip-court:hover { background:rgba(108,99,255,.45); }
+.cal-chip-filing { background:rgba(224,92,92,.25); color:#f87171; }
+.cal-chip-draft { background:rgba(240,165,0,.2); color:#f0a500; }
+.cal-chip-paybyday { background:rgba(249,115,22,.2); color:#fb923c; }
+.cal-chip-vacate { background:rgba(139,92,246,.2); color:#c4b5fd; }
+.cal-chip-shopping { background:rgba(103,232,249,.15); color:#67e8f9; }
+@media (max-width:700px) { .cal-day { min-height:56px; padding:4px 5px; } .cal-chip { font-size:.6rem; padding:1px 4px; } }
+
 /* ── TOAST ── */
 .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:10px 20px; border-radius:10px; font-size:.85rem; z-index:9999; pointer-events:none; opacity:0; transition:opacity .2s; }
 .toast.show { opacity:1; }
@@ -303,6 +325,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
           <button class="add-menu-item" id="add-task-item"><span class="menu-icon">📋</span> Task / Action</button>
           <button class="add-menu-item" id="add-filing-item"><span class="menu-icon">⚖️</span> Filing</button>
           <button class="add-menu-item" id="add-benefit-item"><span class="menu-icon">🏠</span> Benefit Application</button>
+          <button class="add-menu-item" id="add-court-item"><span class="menu-icon">🏛️</span> Court Appearance</button>
         </div>
       </div>
       <button class="btn-cancel" id="sign-out-btn" style="padding:9px 14px;font-size:.85rem;">Sign Out</button>
@@ -312,6 +335,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
   <div class="tabs">
     <div class="tab active" data-tab="all">Overview</div>
     <div class="tab" data-tab="client">By Client</div>
+    <div class="tab" data-tab="calendar">Calendar</div>
   </div>
 
   <div class="content">
@@ -488,6 +512,42 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
   </div>
 </div>
 
+<!-- COURT APPEARANCE MODAL -->
+<div class="modal-overlay" id="court-modal-overlay">
+  <div class="modal">
+    <div class="modal-title" id="court-modal-title">New Court Appearance</div>
+    <div class="two-fields">
+      <div class="field-row">
+        <label class="field-label">Client (Last, First) *</label>
+        <input id="cf-client" type="text" class="field-input" placeholder="e.g. Smith, Jane">
+      </div>
+      <div class="field-row">
+        <label class="field-label">Date *</label>
+        <input id="cf-date" type="date" class="field-input">
+      </div>
+    </div>
+    <div class="two-fields">
+      <div class="field-row">
+        <label class="field-label">Time</label>
+        <input id="cf-time" type="time" class="field-input">
+      </div>
+      <div class="field-row">
+        <label class="field-label">Part</label>
+        <input id="cf-part" type="text" class="field-input" placeholder="e.g. B, 52">
+      </div>
+    </div>
+    <div class="field-row">
+      <label class="field-label">Notes</label>
+      <textarea id="cf-notes" class="field-textarea" placeholder="Optional notes..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-delete" id="court-btn-delete" style="display:none">Delete</button>
+      <button class="btn-cancel" id="court-btn-cancel">Cancel</button>
+      <button class="btn-save" id="court-btn-save">Save Appearance</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -545,11 +605,15 @@ const APP_STATUS_STYLE = s => {
 let db = null;
 let tasks = [];
 let applications = [];
+let courtAppearances = [];
 let currentTab = "all";
 let editingId = null;
 let editingAppId = null;
+let editingCourtId = null;
 let dragSrcId = null;
 let hideDone = true;
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth();
 
 // ═══════════════════════════════════════════════════
 // AUTH
@@ -679,6 +743,38 @@ async function toggleSubtask(taskId, subIdx, done) {
 }
 
 // ═══════════════════════════════════════════════════
+// COURT APPEARANCES CRUD
+// ═══════════════════════════════════════════════════
+async function loadCourtAppearances() {
+  if (!db) return;
+  const { data, error } = await db.from('court_appearances').select('*').order('date', {ascending:true});
+  if (error) { console.error(error); return; }
+  courtAppearances = data || [];
+  renderCurrentTab();
+}
+
+async function saveCourtAppearance(data, id) {
+  if (!db) return;
+  if (id) {
+    const { error } = await db.from('court_appearances').update(data).eq('id', id);
+    if (error) { showToast('Error saving'); return; }
+    showToast('Court appearance updated');
+  } else {
+    const { error } = await db.from('court_appearances').insert([data]);
+    if (error) { showToast('Error saving'); return; }
+    showToast('Court appearance added');
+  }
+  await loadCourtAppearances();
+}
+
+async function deleteCourtAppearance(id) {
+  if (!db) return;
+  await db.from('court_appearances').delete().eq('id', id);
+  showToast('Deleted');
+  await loadCourtAppearances();
+}
+
+// ═══════════════════════════════════════════════════
 // APPLICATIONS CRUD
 // ═══════════════════════════════════════════════════
 async function loadApplications() {
@@ -778,6 +874,11 @@ function renderTab(tab) {
     return;
   }
 
+  if (tab === "calendar") {
+    renderCalendarTab(el);
+    return;
+  }
+
   // Filter tasks
   let filtered = [...tasks];
   if (hideDone) filtered = filtered.filter(t => t.status !== "Done");
@@ -834,6 +935,95 @@ function renderTab(tab) {
   attachDragDrop("task-list-regular", regular);
   attachDragDrop("task-list-filings", filings);
   attachStatusHandlers();
+}
+
+function buildCalendarEvents() {
+  const events = {};
+  const addEvent = (dateStr, chip) => {
+    if (!dateStr) return;
+    if (!events[dateStr]) events[dateStr] = [];
+    events[dateStr].push(chip);
+  };
+
+  // Court appearances
+  courtAppearances.forEach(c => {
+    const timeStr = c.time ? c.time.substring(0, 5) + ' · ' : '';
+    const partStr = c.part ? ' · Pt ' + c.part : '';
+    addEvent(c.date, { type:'court', label:`🏛️ ${timeStr}${c.client}${partStr}`, id:c.id });
+  });
+
+  // Filing / draft deadlines from tasks
+  tasks.filter(t => t.status !== 'Done').forEach(t => {
+    if (FILING_TYPES.has(t.type)) {
+      if (t.deadline) addEvent(t.deadline, { type:'filing', label:`⚖️ ${t.title}${t.client ? ' · '+t.client : ''}` });
+      if (t.draft_deadline) addEvent(t.draft_deadline, { type:'draft', label:`📝 Draft: ${t.title}` });
+    } else if (t.deadline && t.hard_deadline) {
+      addEvent(t.deadline, { type:'filing', label:`🔒 ${t.title}${t.client ? ' · '+t.client : ''}` });
+    }
+  });
+
+  // Application dates
+  applications.forEach(a => {
+    if (a.deadline) addEvent(a.deadline, { type:'paybyday', label:`💰 Pay-by: ${a.client}` });
+    if (a.vacate_date) addEvent(a.vacate_date, { type:'vacate', label:`📦 Vacate: ${a.client}` });
+    if (a.shopping_letter_expiry) addEvent(a.shopping_letter_expiry, { type:'shopping', label:`🔔 Letter exp: ${a.client}` });
+  });
+
+  return events;
+}
+
+function renderCalendarTab(el) {
+  const events = buildCalendarEvents();
+  const todayStr = today();
+  const y = calYear, m = calMonth;
+  const monthName = new Date(y, m, 1).toLocaleDateString('en-US', {month:'long', year:'numeric'});
+
+  const firstDay = new Date(y, m, 1).getDay();
+  const daysInMonth = new Date(y, m+1, 0).getDate();
+  const daysInPrev = new Date(y, m, 0).getDate();
+
+  const dows = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const dowHtml = dows.map(d => `<div class="cal-dow">${d}</div>`).join('');
+
+  let cells = [];
+  for (let i = firstDay - 1; i >= 0; i--) cells.push({ day: daysInPrev - i, thisMonth: false });
+  for (let d = 1; d <= daysInMonth; d++) cells.push({ day: d, thisMonth: true });
+  let next = 1;
+  while (cells.length % 7 !== 0) cells.push({ day: next++, thisMonth: false });
+
+  const cellsHtml = cells.map(cell => {
+    const mm = String(m + 1).padStart(2, '0');
+    const dd = String(cell.day).padStart(2, '0');
+    const dateStr = cell.thisMonth ? `${y}-${mm}-${dd}` : null;
+    const isToday = dateStr === todayStr;
+    const dayEvents = dateStr ? (events[dateStr] || []) : [];
+    const chipsHtml = dayEvents.map(ev => {
+      const clickAttr = ev.id ? `onclick="openEditCourtModal('${ev.id}')"` : '';
+      return `<div class="cal-chip cal-chip-${ev.type}" ${clickAttr}>${escHtml(ev.label)}</div>`;
+    }).join('');
+    return `<div class="cal-day${!cell.thisMonth?' other-month':''}${isToday?' today':''}">
+      <div class="cal-day-num">${cell.day}</div>
+      ${chipsHtml}
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="cal-nav">
+      <button class="cal-nav-btn" onclick="calNav(-1)">← Prev</button>
+      <span class="cal-nav-title">${monthName}</span>
+      <button class="cal-nav-btn" onclick="calNav(1)">Next →</button>
+    </div>
+    <div class="cal-grid">
+      ${dowHtml}
+      ${cellsHtml}
+    </div>`;
+}
+
+function calNav(dir) {
+  calMonth += dir;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  renderCurrentTab();
 }
 
 function renderClientView(el) {
@@ -1244,6 +1434,69 @@ function closeAppModal() {
   editingAppId = null;
 }
 
+// ═══════════════════════════════════════════════════
+// COURT APPEARANCE MODAL
+// ═══════════════════════════════════════════════════
+function openNewCourtModal() {
+  editingCourtId = null;
+  document.getElementById('court-modal-title').textContent = 'New Court Appearance';
+  document.getElementById('cf-client').value = '';
+  document.getElementById('cf-date').value = '';
+  document.getElementById('cf-time').value = '';
+  document.getElementById('cf-part').value = '';
+  document.getElementById('cf-notes').value = '';
+  document.getElementById('court-btn-delete').style.display = 'none';
+  document.getElementById('court-btn-save').textContent = 'Save Appearance';
+  document.getElementById('court-modal-overlay').style.display = 'flex';
+  document.getElementById('cf-client').focus();
+}
+
+function openEditCourtModal(id) {
+  const c = courtAppearances.find(x => x.id === id);
+  if (!c) return;
+  editingCourtId = id;
+  document.getElementById('court-modal-title').textContent = 'Edit Court Appearance';
+  document.getElementById('cf-client').value = c.client || '';
+  document.getElementById('cf-date').value = c.date || '';
+  document.getElementById('cf-time').value = c.time ? c.time.substring(0, 5) : '';
+  document.getElementById('cf-part').value = c.part || '';
+  document.getElementById('cf-notes').value = c.notes || '';
+  document.getElementById('court-btn-delete').style.display = 'inline-block';
+  document.getElementById('court-btn-save').textContent = 'Update Appearance';
+  document.getElementById('court-modal-overlay').style.display = 'flex';
+  document.getElementById('cf-client').focus();
+}
+
+async function handleCourtSave() {
+  const client = document.getElementById('cf-client').value.trim();
+  const date = document.getElementById('cf-date').value;
+  if (!client) { document.getElementById('cf-client').focus(); return; }
+  if (!date) { document.getElementById('cf-date').focus(); return; }
+  const data = {
+    client, date,
+    time: document.getElementById('cf-time').value || null,
+    part: document.getElementById('cf-part').value.trim() || null,
+    notes: document.getElementById('cf-notes').value.trim() || null,
+    updated_at: new Date().toISOString(),
+  };
+  const idToSave = editingCourtId;
+  closeCourtModal();
+  await saveCourtAppearance(data, idToSave);
+}
+
+async function handleCourtDelete() {
+  if (!editingCourtId) return;
+  if (!confirm('Delete this court appearance?')) return;
+  const id = editingCourtId;
+  closeCourtModal();
+  await deleteCourtAppearance(id);
+}
+
+function closeCourtModal() {
+  document.getElementById('court-modal-overlay').style.display = 'none';
+  editingCourtId = null;
+}
+
 function updateFilingFields() {
   const type = document.getElementById("f-type").value;
   const isFiling = FILING_TYPES.has(type);
@@ -1416,8 +1669,10 @@ function showApp() {
   setDateDisplay();
   loadTasks();
   loadApplications();
+  loadCourtAppearances();
   setInterval(loadTasks, 30000);
   setInterval(loadApplications, 30000);
+  setInterval(loadCourtAppearances, 30000);
 }
 
 // Tab switching
@@ -1464,9 +1719,15 @@ document.getElementById('app-btn-delete').addEventListener('click', handleAppDel
 document.getElementById('app-btn-cancel').addEventListener('click', closeAppModal);
 document.getElementById('app-modal-overlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeAppModal(); });
 
+document.getElementById('add-court-item').addEventListener('click', openNewCourtModal);
+document.getElementById('court-btn-save').addEventListener('click', handleCourtSave);
+document.getElementById('court-btn-delete').addEventListener('click', handleCourtDelete);
+document.getElementById('court-btn-cancel').addEventListener('click', closeCourtModal);
+document.getElementById('court-modal-overlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeCourtModal(); });
+
 // Keyboard shortcuts
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape") { closeModal(); closeAppModal(); }
+  if (e.key === "Escape") { closeModal(); closeAppModal(); closeCourtModal(); }
   if (e.key === "Enter" && e.metaKey) handleSave();
 });
 
