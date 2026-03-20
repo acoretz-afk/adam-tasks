@@ -358,7 +358,6 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
           <button class="add-menu-item" id="add-filing-item"><span class="menu-icon">⚖️</span> Filing</button>
           <button class="add-menu-item" id="add-benefit-item"><span class="menu-icon">🏠</span> Benefit Application</button>
           <button class="add-menu-item" id="add-case-item"><span class="menu-icon">📁</span> Case</button>
-          <button class="add-menu-item" id="add-court-item"><span class="menu-icon">🏛️</span> Court Appearance</button>
         </div>
       </div>
       <button class="btn-cancel" id="sign-out-btn" style="padding:9px 14px;font-size:.85rem;">Sign Out</button>
@@ -574,6 +573,16 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
       <div class="field-row">
         <label class="field-label">Part</label>
         <input id="case-part" type="text" class="field-input" placeholder="e.g. A, B, O, IP, SPP">
+      </div>
+    </div>
+
+    <div class="two-fields">
+      <div class="field-row">
+        <label class="field-label">NTO (Next Court Date)</label>
+        <input id="case-nto-date" type="date" class="field-input">
+      </div>
+      <div class="field-row" style="display:flex;flex-direction:column;justify-content:flex-end;">
+        <p style="font-size:.75rem;color:var(--text3);padding-bottom:10px;line-height:1.4;">Appears on calendar with client name &amp; part. Update after each appearance.</p>
       </div>
     </div>
 
@@ -1189,6 +1198,14 @@ function renderCaseCard(c) {
   const chips = [];
   if (c.part) chips.push(`<span class="case-date-chip case-date-ok">Part ${escHtml(c.part)}</span>`);
 
+  // NTO date
+  if (c.nto_date) {
+    const d = daysUntil(c.nto_date);
+    const cls = d < 0 ? 'case-date-ok' : d <= 3 ? 'case-date-urgent' : d <= 7 ? 'case-date-warn' : 'case-date-ok';
+    const lbl = d < 0 ? `${Math.abs(d)}d ago` : d === 0 ? 'Today' : d === 1 ? 'Tomorrow' : `${d}d`;
+    chips.push(`<span class="case-date-chip ${cls}">🏛️ NTO ${fmtDate(c.nto_date)} · ${lbl}</span>`);
+  }
+
   // Payment date
   if (c.payment_date) {
     const d = daysUntil(c.payment_date);
@@ -1258,11 +1275,10 @@ function buildCalendarEvents() {
     events[dateStr].push(chip);
   };
 
-  // Court appearances
-  courtAppearances.forEach(c => {
-    const timeStr = c.time ? c.time.substring(0, 5) + ' · ' : '';
+  // NTO dates from cases
+  cases.filter(c => c.nto_date && c.status === 'Active').forEach(c => {
     const partStr = c.part ? ' · Pt ' + c.part : '';
-    addEvent(c.date, { type:'court', label:`🏛️ ${timeStr}${c.client}${partStr}`, id:c.id });
+    addEvent(c.nto_date, { type:'court', label:`🏛️ ${c.client}${partStr}`, id:c.id });
   });
 
   // Filing / draft deadlines from tasks
@@ -1311,7 +1327,7 @@ function renderCalendarTab(el) {
     const isToday = dateStr === todayStr;
     const dayEvents = dateStr ? (events[dateStr] || []) : [];
     const chipsHtml = dayEvents.map(ev => {
-      const clickAttr = ev.id ? `onclick="openEditCourtModal('${ev.id}')"` : '';
+      const clickAttr = ev.id ? `onclick="openEditCaseModal('${ev.id}')"` : '';
       return `<div class="cal-chip cal-chip-${ev.type}" ${clickAttr}>${escHtml(ev.label)}</div>`;
     }).join('');
     return `<div class="cal-day${!cell.thisMonth?' other-month':''}${isToday?' today':''}">
@@ -1764,7 +1780,7 @@ function clearCaseModal() {
    'case-ls-url','case-ny-url','case-ec-url'].forEach(id => {
     document.getElementById(id).value = '';
   });
-  ['case-payment-date','case-vacate-date','case-eviction-date'].forEach(id => {
+  ['case-payment-date','case-vacate-date','case-eviction-date','case-nto-date'].forEach(id => {
     document.getElementById(id).value = '';
   });
   document.getElementById('case-type').value = 'NP';
@@ -1804,6 +1820,7 @@ function openEditCaseModal(id) {
   document.getElementById('case-payment-date').value = c.payment_date || '';
   document.getElementById('case-vacate-date').value = c.vacate_date || '';
   document.getElementById('case-eviction-date').value = c.earliest_eviction_date || '';
+  document.getElementById('case-nto-date').value = c.nto_date || '';
   document.getElementById('case-noe-served').checked = !!c.noe_served;
   document.getElementById('case-letter-drafted').checked = !!c.closing_letter_drafted;
   document.getElementById('case-letter-mailed').checked = !!c.closing_letter_mailed;
@@ -1835,6 +1852,7 @@ async function handleCaseSave() {
     payment_date: document.getElementById('case-payment-date').value || null,
     vacate_date: document.getElementById('case-vacate-date').value || null,
     earliest_eviction_date: document.getElementById('case-eviction-date').value || null,
+    nto_date: document.getElementById('case-nto-date').value || null,
     noe_served: document.getElementById('case-noe-served').checked,
     closing_letter_drafted: document.getElementById('case-letter-drafted').checked,
     closing_letter_mailed: document.getElementById('case-letter-mailed').checked,
@@ -2097,11 +2115,9 @@ function showApp() {
   setDateDisplay();
   loadTasks();
   loadApplications();
-  loadCourtAppearances();
   loadCases();
   setInterval(loadTasks, 30000);
   setInterval(loadApplications, 30000);
-  setInterval(loadCourtAppearances, 30000);
   setInterval(loadCases, 30000);
 }
 
@@ -2156,7 +2172,6 @@ document.getElementById('case-btn-delete').addEventListener('click', handleCaseD
 document.getElementById('case-btn-cancel').addEventListener('click', closeCaseModal);
 document.getElementById('case-modal-overlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeCaseModal(); });
 
-document.getElementById('add-court-item').addEventListener('click', openNewCourtModal);
 document.getElementById('court-btn-save').addEventListener('click', handleCourtSave);
 document.getElementById('court-btn-delete').addEventListener('click', handleCourtDelete);
 document.getElementById('court-btn-cancel').addEventListener('click', closeCourtModal);
