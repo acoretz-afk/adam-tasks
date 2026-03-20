@@ -282,6 +282,12 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .status-pill-closed { background:var(--surface3); color:var(--text3); }
 .case-notes-text { font-size:.75rem; color:var(--text3); margin-top:5px; line-height:1.4; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden; }
 .case-noe-badge { font-size:.68rem; font-weight:700; color:#f87171; background:rgba(224,92,92,.12); padding:2px 6px; border-radius:5px; }
+.case-links { display:flex; gap:6px; margin-top:8px; }
+.case-link-btn { display:inline-flex; align-items:center; gap:4px; font-size:.72rem; font-weight:700; padding:3px 9px; border-radius:6px; text-decoration:none; transition:filter .15s; border:1px solid; }
+.case-link-btn:hover { filter:brightness(1.25); }
+.case-link-ls { background:rgba(99,179,237,.12); color:#63b3ed; border-color:rgba(99,179,237,.3); }
+.case-link-ny { background:rgba(154,205,50,.1); color:#a3c65a; border-color:rgba(154,205,50,.25); }
+.case-link-ec { background:rgba(251,191,36,.1); color:#f0a500; border-color:rgba(251,191,36,.25); }
 
 /* ── CALENDAR ── */
 .cal-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
@@ -640,6 +646,21 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
           <input type="checkbox" id="case-noe-served">
           <label for="case-noe-served">NOE Served</label>
         </div>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <label class="field-label">LegalServer URL</label>
+      <input id="case-ls-url" type="url" class="field-input" placeholder="https://nylaa.legalserver.org/...">
+    </div>
+    <div class="two-fields">
+      <div class="field-row">
+        <label class="field-label">NYSCEF URL</label>
+        <input id="case-ny-url" type="url" class="field-input" placeholder="https://iapps.courts.state.ny.us/...">
+      </div>
+      <div class="field-row">
+        <label class="field-label">eCourts URL</label>
+        <input id="case-ec-url" type="url" class="field-input" placeholder="https://ecourts.apps.courts.state.ny.us/...">
       </div>
     </div>
 
@@ -1207,6 +1228,12 @@ function renderCaseCard(c) {
   const stipNote = c.stip_notes ? `<div class="case-notes-text">📋 ${escHtml(c.stip_notes)}</div>` : '';
   const resolution = c.resolution ? `<div class="case-notes-text" style="color:var(--text2)">→ ${escHtml(c.resolution)}</div>` : '';
 
+  const linkBtns = [];
+  if (c.legalserver_url) linkBtns.push(`<a class="case-link-btn case-link-ls" href="${escHtml(c.legalserver_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">⚖️ LegalServer</a>`);
+  if (c.nyscef_url) linkBtns.push(`<a class="case-link-btn case-link-ny" href="${escHtml(c.nyscef_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">📄 NYSCEF</a>`);
+  if (c.ecourts_url) linkBtns.push(`<a class="case-link-btn case-link-ec" href="${escHtml(c.ecourts_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🏛️ eCourts</a>`);
+  const linksHtml = linkBtns.length ? `<div class="case-links">${linkBtns.join('')}</div>` : '';
+
   return `<div class="case-card" onclick="openEditCaseModal('${c.id}')">
     <div class="case-card-top">
       ${typeBadge}
@@ -1219,6 +1246,7 @@ function renderCaseCard(c) {
     ${courtNote}
     ${stipNote}
     ${resolution}
+    ${linksHtml}
   </div>`;
 }
 
@@ -1732,7 +1760,8 @@ function updateCaseFields() {
 
 function clearCaseModal() {
   ['case-client','case-index','case-part','case-landlord','case-opa',
-   'case-resolution','case-court-notes','case-stip-notes','case-notes'].forEach(id => {
+   'case-resolution','case-court-notes','case-stip-notes','case-notes',
+   'case-ls-url','case-ny-url','case-ec-url'].forEach(id => {
     document.getElementById(id).value = '';
   });
   ['case-payment-date','case-vacate-date','case-eviction-date'].forEach(id => {
@@ -1779,6 +1808,9 @@ function openEditCaseModal(id) {
   document.getElementById('case-letter-drafted').checked = !!c.closing_letter_drafted;
   document.getElementById('case-letter-mailed').checked = !!c.closing_letter_mailed;
   document.getElementById('case-notes').value = c.notes || '';
+  document.getElementById('case-ls-url').value = c.legalserver_url || '';
+  document.getElementById('case-ny-url').value = c.nyscef_url || '';
+  document.getElementById('case-ec-url').value = c.ecourts_url || '';
   document.getElementById('case-btn-delete').style.display = 'inline-block';
   document.getElementById('case-btn-save').textContent = 'Update Case';
   updateCaseFields();
@@ -1807,6 +1839,9 @@ async function handleCaseSave() {
     closing_letter_drafted: document.getElementById('case-letter-drafted').checked,
     closing_letter_mailed: document.getElementById('case-letter-mailed').checked,
     notes: document.getElementById('case-notes').value.trim() || null,
+    legalserver_url: document.getElementById('case-ls-url').value.trim() || null,
+    nyscef_url: document.getElementById('case-ny-url').value.trim() || null,
+    ecourts_url: document.getElementById('case-ec-url').value.trim() || null,
     updated_at: new Date().toISOString(),
   };
   const idToSave = editingCaseId;
