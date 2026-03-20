@@ -159,13 +159,11 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .subtask-text { line-height:1.3; }
 .subtask-text.done-sub { text-decoration:line-through; color:var(--text3); }
 
-.task-right { display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
-.status-select {
-  background:var(--surface3); border:1px solid var(--border); color:var(--text);
-  font-size:.75rem; padding:4px 6px; border-radius:7px; cursor:pointer; outline:none;
-  font-family:inherit;
-}
-.status-select:focus { border-color:var(--accent); }
+.task-right { display:flex; flex-direction:column; align-items:center; gap:6px; }
+.task-complete-btn { width:22px; height:22px; border-radius:50%; border:2px solid var(--border); background:transparent; cursor:pointer; flex-shrink:0; transition:all .15s; display:flex; align-items:center; justify-content:center; color:transparent; font-size:13px; font-weight:700; }
+.task-complete-btn:hover { border-color:var(--green); color:var(--green); }
+.task-complete-btn.done { background:var(--green); border-color:var(--green); color:#fff; }
+.task-card.swiping { transition:transform .1s, background .1s; }
 
 /* ── MULTISTEP GROUP ── */
 .multistep-group { margin-bottom:12px; }
@@ -390,8 +388,6 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
         <label class="field-label">Status</label>
         <select id="f-status" class="field-select">
           <option>To Do</option>
-          <option>In Progress</option>
-          <option>Waiting</option>
           <option>Done</option>
         </select>
       </div>
@@ -507,7 +503,7 @@ const TASK_TYPES = [
 ];
 const FILING_TYPES = new Set(["Answer","Motion","HP Petition","OSC","Other Filing"]);
 
-const STATUSES = ["To Do","In Progress","Waiting","Done"];
+const STATUSES = ["To Do","Done"];
 
 const PRIORITY_STYLE = {
   Urgent:  { bg:"#3a1020", color:"#f87171" },
@@ -1038,9 +1034,7 @@ function renderTaskCard(t, isFiling) {
         ${subtasksHtml}
       </div>
       <div class="task-right" onclick="event.stopPropagation()">
-        <select class="status-select" data-status-id="${t.id}">
-          ${STATUSES.map(s=>`<option${t.status===s?" selected":""}>${s}</option>`).join("")}
-        </select>
+        <button class="task-complete-btn${done?' done':''}" onclick="quickComplete('${t.id}','${t.status}',event)" title="${done?'Mark incomplete':'Mark complete'}">✓</button>
         ${filingDeadlinesHtml}
         <button class="card-delete-btn" onclick="quickDelete('${t.id}', event)" title="Delete task">✕</button>
       </div>
@@ -1100,17 +1094,38 @@ function attachDragDrop(listId, taskArray) {
 // STATUS HANDLERS
 // ═══════════════════════════════════════════════════
 function attachStatusHandlers() {
-  document.querySelectorAll(".status-select").forEach(sel => {
-    sel.addEventListener("change", async e => {
-      await updateStatus(e.target.dataset.statusId, e.target.value);
-    });
-  });
   document.querySelectorAll(".subtask-check").forEach(chk => {
     chk.addEventListener("change", async e => {
-      const taskId = chk.dataset.taskId;
-      const subIdx = parseInt(chk.dataset.subIdx);
-      await toggleSubtask(taskId, subIdx, chk.checked);
+      await toggleSubtask(chk.dataset.taskId, parseInt(chk.dataset.subIdx), chk.checked);
     });
+  });
+  // Swipe right to complete on mobile
+  document.querySelectorAll(".task-card[data-id]").forEach(card => {
+    let startX = 0, startY = 0, swiping = false;
+    card.addEventListener("touchstart", e => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      swiping = false;
+    }, {passive:true});
+    card.addEventListener("touchmove", e => {
+      const dx = e.touches[0].clientX - startX;
+      const dy = e.touches[0].clientY - startY;
+      if (Math.abs(dx) > Math.abs(dy) && dx > 10) {
+        swiping = true;
+        card.style.transform = `translateX(${Math.min(dx * 0.35, 60)}px)`;
+        card.style.borderColor = `rgba(76,175,125,${Math.min(dx/120,1)})`;
+      }
+    }, {passive:true});
+    card.addEventListener("touchend", async e => {
+      const dx = e.changedTouches[0].clientX - startX;
+      card.style.transform = "";
+      card.style.borderColor = "";
+      if (swiping && dx > 80) {
+        const id = card.dataset.id;
+        const t = tasks.find(x => x.id === id);
+        if (t) await updateStatus(id, t.status === "Done" ? "To Do" : "Done");
+      }
+    }, {passive:true});
   });
 }
 
@@ -1371,6 +1386,11 @@ async function quickDelete(id, e) {
   e.stopPropagation();
   if (!confirm("Delete this task?")) return;
   await deleteTask(id);
+}
+
+async function quickComplete(id, currentStatus, e) {
+  e.stopPropagation();
+  await updateStatus(id, currentStatus === "Done" ? "To Do" : "Done");
 }
 
 function closeModal() {
