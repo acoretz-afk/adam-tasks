@@ -924,17 +924,11 @@ function renderAppCard(app) {
 
 function buildBenefitsPanelHtml() {
   const active = applications.filter(a => !RESOLVED_STATUSES.has(a.status));
-  const ACTION_EARLY = {
-    'One Shot Deal': ['Needs to Apply','Application Submitted','Phone Interview Complete','App # Assigned','Advocacy Packet Submitted'],
-    'FHEPS to Stay': ['CA Application','Application Submitted'],
-    'CityFHEPS to Stay': ['Referred to Homebase','Application Submitted'],
-    'FHEPS to Move': ['Referred to Homebase'],
-    'CityFHEPS to Move': ['Referred to Homebase'],
-    'Other': ['In Progress','Submitted'],
-  };
-  const actionNeeded = active.filter(a => (ACTION_EARLY[a.type]||[]).includes(a.status));
   const pending = active.filter(a => ['Pending','Pending HRA'].includes(a.status));
-  const housingSearch = active.filter(a => MOVE_TYPES.has(a.type) && !['Referred to Homebase'].includes(a.status));
+  const housingSearch = active.filter(a => MOVE_TYPES.has(a.type) && a.status !== 'Referred to Homebase');
+  const pendingIds = new Set(pending.map(a => a.id));
+  const housingIds = new Set(housingSearch.map(a => a.id));
+  const actionNeeded = active.filter(a => !pendingIds.has(a.id) && !housingIds.has(a.id));
 
   const section = (label, apps) => apps.length ? `
     <div class="app-section">
