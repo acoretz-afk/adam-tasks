@@ -866,7 +866,7 @@ function renderClientView(el) {
     const ts = grouped[client] || [];
     const label = client === "__admin__" ? "Admin / No Client" : client;
     const open = ts.filter(t=>t.status!=="Done").length;
-    const clientApps = applications.filter(a => a.client === client && !RESOLVED_STATUSES.has(a.status));
+    const clientApps = applications.filter(a => a.client === client);
     const appsHtml = clientApps.length ? `
       <div class="client-apps">
         <div class="client-apps-title">Benefit Applications</div>
@@ -926,6 +926,7 @@ function buildBenefitsPanelHtml() {
   const active = applications.filter(a => !RESOLVED_STATUSES.has(a.status));
   const pending = active.filter(a => ['Pending','Pending HRA'].includes(a.status));
   const housingSearch = active.filter(a => MOVE_TYPES.has(a.type) && a.status !== 'Referred to Homebase');
+  const resolved = applications.filter(a => RESOLVED_STATUSES.has(a.status));
   const pendingIds = new Set(pending.map(a => a.id));
   const housingIds = new Set(housingSearch.map(a => a.id));
   const actionNeeded = active.filter(a => !pendingIds.has(a.id) && !housingIds.has(a.id));
@@ -940,6 +941,7 @@ function buildBenefitsPanelHtml() {
     section('🔴 Action Needed', actionNeeded),
     section('⏳ Pending Decision', pending),
     section('🏠 Housing Search', housingSearch),
+    section('✅ Resolved', resolved),
   ].join('') || '<div class="benefits-empty">No active applications</div>';
 
   return { count: active.length, body };
