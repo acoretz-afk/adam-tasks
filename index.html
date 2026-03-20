@@ -524,7 +524,7 @@ const TYPE_ICON = {
 
 const APP_TYPES = ['One Shot Deal','FHEPS to Stay','FHEPS to Move','CityFHEPS to Stay','CityFHEPS to Move','Other'];
 const APP_STATUSES = {
-  'One Shot Deal': ['Access HRA Application','Phone Interview','App # Assigned','Advocacy Packet Submitted','Pending HRA','Approved','Declined'],
+  'One Shot Deal': ['Needs to Apply','Application Submitted','Phone Interview Complete','App # Assigned','Advocacy Packet Submitted','Pending HRA','Approved','Declined'],
   'FHEPS to Stay': ['CA Application','Application Submitted','Pending','Approved','Declined'],
   'CityFHEPS to Stay': ['Referred to Homebase','Application Submitted','Pending','Approved','Declined'],
   'FHEPS to Move': ['Referred to Homebase','Shopping Letter Active','Apartment Search','Apartment Found','Package Submitted','Inspection','Move-in Scheduled','Completed'],
@@ -943,7 +943,7 @@ function renderAppCard(app) {
 function buildBenefitsPanelHtml() {
   const active = applications.filter(a => !RESOLVED_STATUSES.has(a.status));
   const ACTION_EARLY = {
-    'One Shot Deal': ['Access HRA Application','Phone Interview','App # Assigned','Advocacy Packet Submitted'],
+    'One Shot Deal': ['Needs to Apply','Application Submitted','Phone Interview Complete','App # Assigned','Advocacy Packet Submitted'],
     'FHEPS to Stay': ['CA Application','Application Submitted'],
     'CityFHEPS to Stay': ['Referred to Homebase','Application Submitted'],
     'FHEPS to Move': ['Referred to Homebase'],
