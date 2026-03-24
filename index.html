@@ -1188,10 +1188,10 @@ function renderCaseCard(c) {
   const typeBadge = `<span class="case-type-badge case-type-${c.case_type}">${c.case_type}</span>`;
 
   const statusClass = c.status === 'Active' ? 'status-pill-active' : c.status === 'Ready to Close' ? 'status-pill-ready' : 'status-pill-closed';
-  const statusPill = `<span class="case-status-pill ${statusClass}">${escHtml(c.status)}</span>`;
+  const statusPill = caseFilter === 'all' ? `<span class="case-status-pill ${statusClass}">${escHtml(c.status)}</span>` : '';
 
   const partyParts = [];
-  if (c.landlord) partyParts.push(`<strong style="color:var(--text)">vs.</strong> ${escHtml(c.landlord)}`);
+  if (c.landlord) partyParts.push(`Petitioner: ${escHtml(c.landlord)}`);
   if (c.opa) partyParts.push(`OPA: ${escHtml(c.opa)}`);
   const partyRow = partyParts.length ? `<div class="case-party-row">${partyParts.join(' &nbsp;·&nbsp; ')}</div>` : '';
 
@@ -1253,8 +1253,8 @@ function renderCaseCard(c) {
 
   return `<div class="case-card" onclick="openEditCaseModal('${c.id}')">
     <div class="case-card-top">
-      ${typeBadge}
       <span class="case-client">${escHtml(c.client)}</span>
+      ${typeBadge}
       <span class="case-index">${escHtml(c.index_number || '')}</span>
       ${statusPill}
     </div>
