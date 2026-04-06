@@ -816,6 +816,7 @@ let caseFilter = "active";
 let calYear = new Date().getFullYear();
 let calMonth = new Date().getMonth();
 let caseDetailClient = null;
+let caseDetailEditMode = false;
 
 // ═══════════════════════════════════════════════════
 // AUTH
@@ -1056,6 +1057,7 @@ function populateClientSelect(selectId, selectedValue) {
 
 function openCaseDetail(clientName) {
   caseDetailClient = clientName;
+  caseDetailEditMode = false;
   renderCaseDetail();
   document.getElementById('case-detail-overlay').style.display = 'flex';
 }
@@ -1129,10 +1131,18 @@ function renderCaseDetail() {
     if (linkBtns.length) headerHtml += `<div class="case-links" style="margin-top:8px">${linkBtns.join('')}</div>`;
   }
 
-  headerHtml += `<div class="case-detail-actions">
-    ${caseRecord ? `<button class="btn-edit-case" onclick="closeCaseDetail(); openEditCaseModal('${caseRecord.id}')">✏️ Edit Case</button>` : ''}
-    <button class="btn-cancel" style="padding:7px 16px;font-size:.85rem" onclick="closeCaseDetail()">Close</button>
-  </div>`;
+  if (caseDetailEditMode) {
+    headerHtml += `<div class="case-detail-actions">
+      ${caseRecord ? `<button class="btn-edit-case" onclick="closeCaseDetail(); openEditCaseModal('${caseRecord.id}')">✏️ Edit Case</button>` : ''}
+      <button class="btn-cancel" style="padding:7px 16px;font-size:.85rem" onclick="caseDetailEditMode=false; renderCaseDetail()">View Only</button>
+      <button class="btn-cancel" style="padding:7px 16px;font-size:.85rem" onclick="closeCaseDetail()">Close</button>
+    </div>`;
+  } else {
+    headerHtml += `<div class="case-detail-actions">
+      <button class="btn-edit-case" onclick="caseDetailEditMode=true; renderCaseDetail()">✏️ Edit</button>
+      <button class="btn-cancel" style="padding:7px 16px;font-size:.85rem" onclick="closeCaseDetail()">Close</button>
+    </div>`;
+  }
   document.getElementById('case-detail-header').innerHTML = headerHtml;
 
   // ── Body ──
@@ -1143,24 +1153,26 @@ function renderCaseDetail() {
 
   let bodyHtml = '';
 
+  const ro = !caseDetailEditMode;
+
   bodyHtml += `<div>
     <div class="case-detail-section-title">📋 Tasks & Actions <span>${openRegular.length} open</span></div>
     ${openRegular.length || doneRegular.length
-      ? [...openRegular, ...doneRegular].map(t => renderTaskCard(t, false)).join('')
+      ? [...openRegular, ...doneRegular].map(t => renderTaskCard(t, false, ro)).join('')
       : `<div class="case-detail-empty">No tasks for this client</div>`}
   </div>`;
 
   bodyHtml += `<div>
     <div class="case-detail-section-title">⚖️ Filings & Motions <span>${openFilings.length} open</span></div>
     ${openFilings.length || doneFilings.length
-      ? [...openFilings, ...doneFilings].map(t => renderTaskCard(t, true)).join('')
+      ? [...openFilings, ...doneFilings].map(t => renderTaskCard(t, true, ro)).join('')
       : `<div class="case-detail-empty">No filings for this client</div>`}
   </div>`;
 
   bodyHtml += `<div>
     <div class="case-detail-section-title">🏠 Benefit Applications <span>${clientApps.length}</span></div>
     ${clientApps.length
-      ? clientApps.map(renderAppCard).join('')
+      ? clientApps.map(a => renderAppCard(a, ro)).join('')
       : `<div class="case-detail-empty">No benefit applications for this client</div>`}
   </div>`;
 
@@ -1552,7 +1564,7 @@ function renderClientView(el) {
   attachStatusHandlers();
 }
 
-function renderAppCard(app) {
+function renderAppCard(app, readonly = false) {
   const typeLabel = (app.type === 'Other' && app.other_type) ? `Other – ${app.other_type}` : app.type;
   const st = APP_STATUS_STYLE(app.status);
   const shoppingDays = daysUntil(app.shopping_letter_expiry);
@@ -1577,7 +1589,7 @@ function renderAppCard(app) {
   if (app.shopping_letter_expiry && shoppingDays > 30) metaParts.push(`🔔 Letter exp. ${fmtDate(app.shopping_letter_expiry)}`);
   if (app.vacate_date && vacateDays > 14) metaParts.push(`📦 Vacate ${fmtDate(app.vacate_date)}`);
   if (app.deadline && deadlineDays > 14) metaParts.push(`📅 Pay-by ${fmtDate(app.deadline)}`);
-  return `<div class="app-card" onclick="openEditAppModal('${app.id}')">
+  return `<div class="app-card"${readonly ? '' : ` onclick="openEditAppModal('${app.id}')"`} style="${readonly ? 'cursor:default' : ''}">
     <div class="app-card-header">
       <span class="app-type-label">${escHtml(typeLabel)}</span>
       <span class="app-status-pill" style="background:${st.bg};color:${st.color}">${escHtml(app.status)}</span>
@@ -1614,7 +1626,7 @@ function buildBenefitsPanelHtml() {
   return { count: active.length, body };
 }
 
-function renderTaskCard(t, isFiling) {
+function renderTaskCard(t, isFiling, readonly = false) {
   const p = PRIORITY_STYLE[t.priority] || PRIORITY_STYLE.Normal;
 
   // For filing cards, build prominent deadline block instead of inline badge
@@ -1671,7 +1683,9 @@ function renderTaskCard(t, isFiling) {
   }
 
   const clientHtml = t.client
-    ? `<span class="meta-client client-name-link" onclick="event.stopPropagation(); openCaseDetail(${JSON.stringify(t.client)})">👤 ${escHtml(t.client)}</span><span class="meta-dot">·</span>`
+    ? (readonly
+        ? `<span class="meta-client">👤 ${escHtml(t.client)}</span><span class="meta-dot">·</span>`
+        : `<span class="meta-client client-name-link" onclick="event.stopPropagation(); openCaseDetail(${JSON.stringify(t.client)})">👤 ${escHtml(t.client)}</span><span class="meta-dot">·</span>`)
     : `<span class="meta-client" style="color:#6060a0;font-style:italic">Admin</span><span class="meta-dot">·</span>`;
 
   const notesHtml = t.notes
@@ -1689,6 +1703,28 @@ function renderTaskCard(t, isFiling) {
 
   const done = t.status === "Done";
   const cardClass = `task-card${done?" done-card":""}${isFiling?" filing-card":""}`;
+
+  if (readonly) {
+    return `<div class="${cardClass}" style="cursor:default">
+      <div class="task-inner" style="padding-left:12px">
+        <div class="task-left">
+          <div class="task-type-badge">${TYPE_ICON[t.type]||"📌"} ${escHtml(t.type)}</div>
+          <div class="task-title ${done?"done-title":""}">${escHtml(t.title)}</div>
+          <div class="task-meta">
+            ${clientHtml}
+            <span class="priority-badge" style="background:${p.bg};color:${p.color}">${t.priority}</span>
+            ${deadlineHtml}
+          </div>
+          ${isFiling ? '' : notesHtml}
+          ${subtasksHtml}
+        </div>
+        <div class="task-right">
+          ${filingDeadlinesHtml}
+        </div>
+        ${isFiling ? notesHtml : ''}
+      </div>
+    </div>`;
+  }
 
   return `<div class="${cardClass}" data-id="${t.id}" draggable="true">
     <div class="drag-handle" title="Drag to reorder">⠿</div>
