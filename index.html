@@ -311,6 +311,22 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .cal-chip-shopping { background:rgba(103,232,249,.15); color:#67e8f9; }
 @media (max-width:700px) { .cal-day { min-height:56px; padding:4px 5px; } .cal-chip { font-size:.6rem; padding:1px 4px; } }
 
+/* ── CASE DETAIL OVERLAY ── */
+.case-detail-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:999; align-items:flex-start; justify-content:center; padding:20px; overflow-y:auto; }
+.case-detail-modal { background:var(--surface); border:1px solid var(--border); border-radius:16px; width:min(700px,100%); margin:auto; overflow:hidden; }
+.case-detail-header { background:var(--surface2); padding:20px 24px 16px; border-bottom:1px solid var(--border); }
+.case-detail-title-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap; }
+.case-detail-name { font-size:1.2rem; font-weight:700; flex:1; }
+.case-detail-actions { display:flex; gap:8px; margin-top:14px; }
+.case-detail-body { padding:20px 24px; display:flex; flex-direction:column; gap:20px; }
+.case-detail-section-title { font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text3); margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+.case-detail-section-title span { background:var(--surface3); color:var(--text3); font-size:.7rem; padding:1px 7px; border-radius:8px; }
+.case-detail-empty { color:var(--text3); font-size:.83rem; padding:8px 0; font-style:italic; }
+.client-name-link { cursor:pointer; text-decoration:underline; text-decoration-color:var(--text3); text-underline-offset:2px; transition:color .15s; }
+.client-name-link:hover { color:var(--accent2); text-decoration-color:var(--accent2); }
+.btn-edit-case { background:var(--surface3); color:var(--text2); border:1px solid var(--border); border-radius:8px; padding:7px 16px; font-size:.85rem; cursor:pointer; font-family:inherit; font-weight:500; }
+.btn-edit-case:hover { border-color:var(--accent); color:var(--accent2); }
+
 /* ── TOAST ── */
 .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:10px 20px; border-radius:10px; font-size:.85rem; z-index:9999; pointer-events:none; opacity:0; transition:opacity .2s; }
 .toast.show { opacity:1; }
@@ -413,8 +429,8 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
     </div>
     <div class="two-fields">
       <div class="field-row">
-        <label class="field-label">Client (Last, First)</label>
-        <input id="f-client" type="text" class="field-input" placeholder="e.g. Smith, Jane">
+        <label class="field-label">Client</label>
+        <select id="f-client" class="field-select"></select>
       </div>
       <div class="field-row">
         <label class="field-label" id="deadline-label">Deadline</label>
@@ -463,8 +479,8 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
     <div class="modal-title" id="app-modal-title">New Benefit Application</div>
     <div class="two-fields">
       <div class="field-row">
-        <label class="field-label">Client (Last, First) *</label>
-        <input id="af-client" type="text" class="field-input" placeholder="e.g. Smith, Jane">
+        <label class="field-label">Client *</label>
+        <select id="af-client" class="field-select"></select>
       </div>
       <div class="field-row">
         <label class="field-label">Application Type</label>
@@ -692,8 +708,8 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
     <div class="modal-title" id="court-modal-title">New Court Appearance</div>
     <div class="two-fields">
       <div class="field-row">
-        <label class="field-label">Client (Last, First) *</label>
-        <input id="cf-client" type="text" class="field-input" placeholder="e.g. Smith, Jane">
+        <label class="field-label">Client *</label>
+        <select id="cf-client" class="field-select"></select>
       </div>
       <div class="field-row">
         <label class="field-label">Date *</label>
@@ -719,6 +735,14 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
       <button class="btn-cancel" id="court-btn-cancel">Cancel</button>
       <button class="btn-save" id="court-btn-save">Save Appearance</button>
     </div>
+  </div>
+</div>
+
+<!-- CASE DETAIL OVERLAY -->
+<div class="case-detail-overlay" id="case-detail-overlay">
+  <div class="case-detail-modal">
+    <div id="case-detail-header" class="case-detail-header"></div>
+    <div id="case-detail-body" class="case-detail-body"></div>
   </div>
 </div>
 
@@ -791,6 +815,7 @@ let hideDone = true;
 let caseFilter = "active";
 let calYear = new Date().getFullYear();
 let calMonth = new Date().getMonth();
+let caseDetailClient = null;
 
 // ═══════════════════════════════════════════════════
 // AUTH
@@ -869,6 +894,7 @@ async function loadTasks() {
   if (error) { console.error(error); return; }
   tasks = data || [];
   renderCurrentTab();
+  if (caseDetailClient) renderCaseDetail();
 }
 
 async function saveTask(taskData, id) {
@@ -992,6 +1018,7 @@ async function loadApplications() {
   if (error) { console.error(error); return; }
   applications = data || [];
   renderCurrentTab();
+  if (caseDetailClient) renderCaseDetail();
 }
 
 async function saveApplication(appData, id) {
@@ -1015,6 +1042,131 @@ async function deleteApplication(id) {
   await loadApplications();
 }
 
+
+// ═══════════════════════════════════════════════════
+// CASE DETAIL OVERLAY
+// ═══════════════════════════════════════════════════
+function populateClientSelect(selectId, selectedValue) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  const clientNames = cases.map(c => c.client).filter(Boolean).sort();
+  sel.innerHTML = `<option value="">— No client (Admin) —</option>` +
+    clientNames.map(n => `<option value="${escHtml(n)}"${n === selectedValue ? ' selected' : ''}>${escHtml(n)}</option>`).join('');
+}
+
+function openCaseDetail(clientName) {
+  caseDetailClient = clientName;
+  renderCaseDetail();
+  document.getElementById('case-detail-overlay').style.display = 'flex';
+}
+
+function closeCaseDetail() {
+  document.getElementById('case-detail-overlay').style.display = 'none';
+  caseDetailClient = null;
+}
+
+function renderCaseDetail() {
+  const clientName = caseDetailClient;
+  if (!clientName) return;
+  const caseRecord = cases.find(c => c.client === clientName);
+  const clientTasks = tasks.filter(t => t.client === clientName);
+  const clientFilings = clientTasks.filter(t => FILING_TYPES.has(t.type));
+  const clientRegular = clientTasks.filter(t => !FILING_TYPES.has(t.type));
+  const clientApps = applications.filter(a => a.client === clientName);
+
+  // ── Header ──
+  let headerHtml = `<div class="case-detail-title-row">
+    <span class="case-detail-name">👤 ${escHtml(clientName)}</span>`;
+  if (caseRecord) {
+    const statusClass = caseRecord.status === 'Active' ? 'status-pill-active' : caseRecord.status === 'Ready to Close' ? 'status-pill-ready' : 'status-pill-closed';
+    headerHtml += `<span class="case-type-badge case-type-${caseRecord.case_type}">${caseRecord.case_type}</span>
+      <span class="case-status-pill ${statusClass}">${escHtml(caseRecord.status)}</span>`;
+    if (caseRecord.index_number) headerHtml += `<span class="case-index">${escHtml(caseRecord.index_number)}</span>`;
+  }
+  headerHtml += `</div>`;
+
+  if (caseRecord) {
+    const partyParts = [];
+    if (caseRecord.landlord) partyParts.push(`Petitioner: ${escHtml(caseRecord.landlord)}`);
+    if (caseRecord.opa) partyParts.push(`OPA: ${escHtml(caseRecord.opa)}`);
+    if (partyParts.length) headerHtml += `<div class="case-party-row">${partyParts.join(' &nbsp;·&nbsp; ')}</div>`;
+
+    const chips = [];
+    if (caseRecord.part) chips.push(`<span class="case-date-chip case-date-ok">Part ${escHtml(caseRecord.part)}</span>`);
+    if (caseRecord.nto_date) {
+      const d = daysUntil(caseRecord.nto_date);
+      const cls = d < 0 ? 'case-date-ok' : d <= 3 ? 'case-date-urgent' : d <= 7 ? 'case-date-warn' : 'case-date-ok';
+      const lbl = d < 0 ? `${Math.abs(d)}d ago` : d === 0 ? 'Today' : d === 1 ? 'Tomorrow' : `${d}d`;
+      chips.push(`<span class="case-date-chip ${cls}">🏛️ NTO ${fmtDate(caseRecord.nto_date)} · ${lbl}</span>`);
+    }
+    if (caseRecord.payment_date) {
+      const d = daysUntil(caseRecord.payment_date);
+      const cls = d < 0 ? 'case-date-urgent' : d <= 7 ? 'case-date-warn' : 'case-date-ok';
+      const lbl = d < 0 ? `${Math.abs(d)}d overdue` : `${d}d`;
+      chips.push(`<span class="case-date-chip ${cls}">💰 Pay ${fmtDate(caseRecord.payment_date)} · ${lbl}</span>`);
+    }
+    if (caseRecord.vacate_date) {
+      const d = daysUntil(caseRecord.vacate_date);
+      const cls = d < 0 ? 'case-date-urgent' : d <= 14 ? 'case-date-warn' : 'case-date-ok';
+      chips.push(`<span class="case-date-chip ${cls}">📦 Vacate ${fmtDate(caseRecord.vacate_date)} · ${d < 0 ? `${Math.abs(d)}d ago` : `${d}d`}</span>`);
+    }
+    if (caseRecord.earliest_eviction_date) {
+      const d = daysUntil(caseRecord.earliest_eviction_date);
+      const cls = d < 0 ? 'case-date-urgent' : d <= 14 ? 'case-date-warn' : 'case-date-ok';
+      chips.push(`<span class="case-date-chip ${cls}">⚠️ Eviction ${fmtDate(caseRecord.earliest_eviction_date)} · ${d < 0 ? `${Math.abs(d)}d ago` : `${d}d`}</span>`);
+    }
+    if (chips.length) headerHtml += `<div class="case-meta-row" style="margin-top:8px">${chips.join('')}</div>`;
+
+    // Notes
+    if (caseRecord.court_notes) headerHtml += `<div class="case-notes-text" style="margin-top:6px">🏛️ ${escHtml(caseRecord.court_notes)}</div>`;
+    if (caseRecord.stip_notes) headerHtml += `<div class="case-notes-text">📋 ${escHtml(caseRecord.stip_notes)}</div>`;
+    if (caseRecord.resolution) headerHtml += `<div class="case-notes-text" style="color:var(--text2)">→ ${escHtml(caseRecord.resolution)}</div>`;
+
+    const linkBtns = [];
+    if (caseRecord.legalserver_url) linkBtns.push(`<a class="case-link-btn case-link-ls" href="${escHtml(caseRecord.legalserver_url)}" target="_blank" rel="noopener">⚖️ LegalServer</a>`);
+    if (caseRecord.nyscef_url) linkBtns.push(`<a class="case-link-btn case-link-ny" href="${escHtml(caseRecord.nyscef_url)}" target="_blank" rel="noopener">📄 NYSCEF</a>`);
+    if (caseRecord.ecourts_url) linkBtns.push(`<a class="case-link-btn case-link-ec" href="${escHtml(caseRecord.ecourts_url)}" target="_blank" rel="noopener">🏛️ eCourts</a>`);
+    if (linkBtns.length) headerHtml += `<div class="case-links" style="margin-top:8px">${linkBtns.join('')}</div>`;
+  }
+
+  headerHtml += `<div class="case-detail-actions">
+    ${caseRecord ? `<button class="btn-edit-case" onclick="closeCaseDetail(); openEditCaseModal('${caseRecord.id}')">✏️ Edit Case</button>` : ''}
+    <button class="btn-cancel" style="padding:7px 16px;font-size:.85rem" onclick="closeCaseDetail()">Close</button>
+  </div>`;
+  document.getElementById('case-detail-header').innerHTML = headerHtml;
+
+  // ── Body ──
+  const openRegular = clientRegular.filter(t => t.status !== 'Done');
+  const doneRegular = clientRegular.filter(t => t.status === 'Done');
+  const openFilings = clientFilings.filter(t => t.status !== 'Done');
+  const doneFilings = clientFilings.filter(t => t.status === 'Done');
+
+  let bodyHtml = '';
+
+  bodyHtml += `<div>
+    <div class="case-detail-section-title">📋 Tasks & Actions <span>${openRegular.length} open</span></div>
+    ${openRegular.length || doneRegular.length
+      ? [...openRegular, ...doneRegular].map(t => renderTaskCard(t, false)).join('')
+      : `<div class="case-detail-empty">No tasks for this client</div>`}
+  </div>`;
+
+  bodyHtml += `<div>
+    <div class="case-detail-section-title">⚖️ Filings & Motions <span>${openFilings.length} open</span></div>
+    ${openFilings.length || doneFilings.length
+      ? [...openFilings, ...doneFilings].map(t => renderTaskCard(t, true)).join('')
+      : `<div class="case-detail-empty">No filings for this client</div>`}
+  </div>`;
+
+  bodyHtml += `<div>
+    <div class="case-detail-section-title">🏠 Benefit Applications <span>${clientApps.length}</span></div>
+    ${clientApps.length
+      ? clientApps.map(renderAppCard).join('')
+      : `<div class="case-detail-empty">No benefit applications for this client</div>`}
+  </div>`;
+
+  document.getElementById('case-detail-body').innerHTML = bodyHtml;
+  attachStatusHandlers();
+}
 
 // ═══════════════════════════════════════════════════
 // DATES
@@ -1253,7 +1405,7 @@ function renderCaseCard(c) {
 
   return `<div class="case-card" onclick="openEditCaseModal('${c.id}')">
     <div class="case-card-top">
-      <span class="case-client">${escHtml(c.client)}</span>
+      <span class="case-client client-name-link" onclick="event.stopPropagation(); openCaseDetail(${JSON.stringify(c.client)})">${escHtml(c.client)}</span>
       ${typeBadge}
       <span class="case-index">${escHtml(c.index_number || '')}</span>
       ${statusPill}
@@ -1519,7 +1671,7 @@ function renderTaskCard(t, isFiling) {
   }
 
   const clientHtml = t.client
-    ? `<span class="meta-client">👤 ${escHtml(t.client)}</span><span class="meta-dot">·</span>`
+    ? `<span class="meta-client client-name-link" onclick="event.stopPropagation(); openCaseDetail(${JSON.stringify(t.client)})">👤 ${escHtml(t.client)}</span><span class="meta-dot">·</span>`
     : `<span class="meta-client" style="color:#6060a0;font-style:italic">Admin</span><span class="meta-dot">·</span>`;
 
   const notesHtml = t.notes
@@ -1673,7 +1825,6 @@ function updateAppFields() {
 }
 
 function clearAppModal() {
-  document.getElementById('af-client').value = '';
   document.getElementById('af-type').value = 'One Shot Deal';
   document.getElementById('af-other-type').value = 'SNAP';
   document.getElementById('af-arrears').value = '';
@@ -1694,9 +1845,9 @@ function openNewAppModal() {
   clearAppModal();
   document.getElementById('app-btn-delete').style.display = 'none';
   document.getElementById('app-btn-save').textContent = 'Save Application';
+  populateClientSelect('af-client', '');
   updateAppFields();
   document.getElementById('app-modal-overlay').style.display = 'flex';
-  document.getElementById('af-client').focus();
 }
 
 function openEditAppModal(id) {
@@ -1705,7 +1856,7 @@ function openEditAppModal(id) {
   editingAppId = id;
   document.getElementById('app-modal-title').textContent = 'Edit Application';
   clearAppModal();
-  document.getElementById('af-client').value = app.client || '';
+  populateClientSelect('af-client', app.client || '');
   document.getElementById('af-type').value = app.type || 'One Shot Deal';
   document.getElementById('af-other-type').value = app.other_type || 'SNAP';
   document.getElementById('af-arrears').value = app.arrears || '';
@@ -1722,7 +1873,6 @@ function openEditAppModal(id) {
   document.getElementById('app-btn-save').textContent = 'Update Application';
   updateAppFields();
   document.getElementById('app-modal-overlay').style.display = 'flex';
-  document.getElementById('af-client').focus();
 }
 
 async function handleAppSave() {
@@ -1886,7 +2036,7 @@ function closeCaseModal() {
 function openNewCourtModal() {
   editingCourtId = null;
   document.getElementById('court-modal-title').textContent = 'New Court Appearance';
-  document.getElementById('cf-client').value = '';
+  populateClientSelect('cf-client', '');
   document.getElementById('cf-date').value = '';
   document.getElementById('cf-time').value = '';
   document.getElementById('cf-part').value = '';
@@ -1894,7 +2044,6 @@ function openNewCourtModal() {
   document.getElementById('court-btn-delete').style.display = 'none';
   document.getElementById('court-btn-save').textContent = 'Save Appearance';
   document.getElementById('court-modal-overlay').style.display = 'flex';
-  document.getElementById('cf-client').focus();
 }
 
 function openEditCourtModal(id) {
@@ -1902,7 +2051,7 @@ function openEditCourtModal(id) {
   if (!c) return;
   editingCourtId = id;
   document.getElementById('court-modal-title').textContent = 'Edit Court Appearance';
-  document.getElementById('cf-client').value = c.client || '';
+  populateClientSelect('cf-client', c.client || '');
   document.getElementById('cf-date').value = c.date || '';
   document.getElementById('cf-time').value = c.time ? c.time.substring(0, 5) : '';
   document.getElementById('cf-part').value = c.part || '';
@@ -1910,7 +2059,6 @@ function openEditCourtModal(id) {
   document.getElementById('court-btn-delete').style.display = 'inline-block';
   document.getElementById('court-btn-save').textContent = 'Update Appearance';
   document.getElementById('court-modal-overlay').style.display = 'flex';
-  document.getElementById('cf-client').focus();
 }
 
 async function handleCourtSave() {
@@ -1956,7 +2104,7 @@ function openNewModal() {
   document.getElementById("f-title").value = "";
   document.getElementById("f-type").value = "Client Call";
   document.getElementById("f-priority").value = "Normal";
-  document.getElementById("f-client").value = "";
+  populateClientSelect("f-client", "");
   document.getElementById("f-deadline").value = "";
   document.getElementById("f-draft-deadline").value = "";
   document.getElementById("f-hard-deadline").checked = false;
@@ -1981,7 +2129,7 @@ function openEditModal(id) {
   document.getElementById("f-title").value = t.title || "";
   document.getElementById("f-type").value = t.type || "Client Call";
   document.getElementById("f-priority").value = t.priority || "Normal";
-  document.getElementById("f-client").value = t.client || "";
+  populateClientSelect("f-client", t.client || "");
   document.getElementById("f-deadline").value = t.deadline || "";
   document.getElementById("f-draft-deadline").value = t.draft_deadline || "";
   document.getElementById("f-hard-deadline").checked = !!t.hard_deadline;
@@ -2179,9 +2327,10 @@ document.getElementById('court-modal-overlay').addEventListener('click', e => { 
 
 // Keyboard shortcuts
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape") { closeModal(); closeAppModal(); closeCourtModal(); closeCaseModal(); }
+  if (e.key === "Escape") { closeModal(); closeAppModal(); closeCourtModal(); closeCaseModal(); closeCaseDetail(); }
   if (e.key === "Enter" && e.metaKey) handleSave();
 });
+document.getElementById('case-detail-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeCaseDetail(); });
 
 // Setup connect
 document.getElementById("setup-connect").addEventListener("click", handleConnect);
