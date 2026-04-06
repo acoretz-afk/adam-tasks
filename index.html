@@ -1055,6 +1055,16 @@ function populateClientSelect(selectId, selectedValue) {
     clientNames.map(n => `<option value="${escHtml(n)}"${n === selectedValue ? ' selected' : ''}>${escHtml(n)}</option>`).join('');
 }
 
+function openCaseDetailForTask(taskId) {
+  const t = tasks.find(x => x.id === taskId);
+  if (t && t.client) openCaseDetail(t.client);
+}
+
+function openCaseDetailForCase(caseId) {
+  const c = cases.find(x => x.id === caseId);
+  if (c) openCaseDetail(c.client);
+}
+
 function openCaseDetail(clientName) {
   caseDetailClient = clientName;
   caseDetailEditMode = false;
@@ -1417,7 +1427,7 @@ function renderCaseCard(c) {
 
   return `<div class="case-card" onclick="openEditCaseModal('${c.id}')">
     <div class="case-card-top">
-      <span class="case-client client-name-link" onclick="event.stopPropagation(); openCaseDetail(${JSON.stringify(c.client)})">${escHtml(c.client)}</span>
+      <span class="case-client client-name-link" onclick="event.stopPropagation(); openCaseDetailForCase('${c.id}')">${escHtml(c.client)}</span>
       ${typeBadge}
       <span class="case-index">${escHtml(c.index_number || '')}</span>
       ${statusPill}
@@ -1685,7 +1695,7 @@ function renderTaskCard(t, isFiling, readonly = false) {
   const clientHtml = t.client
     ? (readonly
         ? `<span class="meta-client">👤 ${escHtml(t.client)}</span><span class="meta-dot">·</span>`
-        : `<span class="meta-client client-name-link" onclick="event.stopPropagation(); openCaseDetail(${JSON.stringify(t.client)})">👤 ${escHtml(t.client)}</span><span class="meta-dot">·</span>`)
+        : `<span class="meta-client client-name-link" onclick="event.stopPropagation(); openCaseDetailForTask('${t.id}')">👤 ${escHtml(t.client)}</span><span class="meta-dot">·</span>`)
     : `<span class="meta-client" style="color:#6060a0;font-style:italic">Admin</span><span class="meta-dot">·</span>`;
 
   const notesHtml = t.notes
