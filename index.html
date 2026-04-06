@@ -1092,7 +1092,7 @@ async function deleteApplication(id) {
 function populateClientSelect(selectId, selectedValue) {
   const sel = document.getElementById(selectId);
   if (!sel) return;
-  const clientNames = cases.map(c => c.client).filter(Boolean).sort();
+  const clientNames = cases.filter(c => c.status === 'Active').map(c => c.client).filter(Boolean).sort();
   sel.innerHTML = `<option value="">— No client (Admin) —</option>` +
     clientNames.map(n => `<option value="${escHtml(n)}"${n === selectedValue ? ' selected' : ''}>${escHtml(n)}</option>`).join('');
 }
