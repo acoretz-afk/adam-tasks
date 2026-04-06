@@ -956,6 +956,17 @@ async function loadCases() {
   if (error) { console.error(error); return; }
   cases = data || [];
   renderCurrentTab();
+  await clearPastNtoDates();
+}
+
+async function clearPastNtoDates() {
+  const todayStr = today();
+  const stale = cases.filter(c => c.nto_date && c.nto_date < todayStr);
+  if (!stale.length) return;
+  await Promise.all(stale.map(c => db.from('cases').update({ nto_date: null, updated_at: new Date().toISOString() }).eq('id', c.id)));
+  stale.forEach(c => { c.nto_date = null; });
+  renderCurrentTab();
+  if (caseDetailClient) renderCaseDetail();
 }
 
 async function saveCase(caseData, id) {
