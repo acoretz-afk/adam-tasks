@@ -312,10 +312,17 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .cal-chip-shopping { background:rgba(103,232,249,.15); color:#67e8f9; }
 @media (max-width:700px) { .cal-day { min-height:56px; padding:4px 5px; } .cal-chip { font-size:.6rem; padding:1px 4px; } }
 
-/* ── OVERVIEW SIDEBAR ── */
-.overview-sidebar { display:flex; flex-direction:column; gap:16px; }
-.overview-layout { display:grid; grid-template-columns:1fr 300px; gap:20px; align-items:start; }
-@media (max-width:900px) { .overview-layout { grid-template-columns:1fr; } }
+/* ── OVERVIEW LAYOUT ── */
+.overview-layout { display:flex; flex-direction:column; gap:20px; }
+.overview-tasks-scroll { max-height:45vh; min-height:260px; overflow-y:auto; padding-right:2px; }
+.overview-tasks-scroll::-webkit-scrollbar { width:4px; }
+.overview-tasks-scroll::-webkit-scrollbar-track { background:transparent; }
+.overview-tasks-scroll::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+.overview-status-row { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; align-items:start; }
+@media (max-width:900px) {
+  .overview-status-row { grid-template-columns:1fr; order:-1; }
+  .overview-tasks-scroll { max-height:none; overflow-y:visible; }
+}
 
 /* ── EVICTIONS PANEL ── */
 .evictions-panel { background:#150808; border:1px solid #7a1515; border-radius:14px; overflow:hidden; }
@@ -1386,14 +1393,16 @@ function renderTab(tab) {
 
   el.innerHTML = `
     <div class="overview-layout">
-      <div class="main-col">
+      <div>
         <div class="section-header">
           <span class="section-title">Tasks & Actions</span>
           <span class="section-count">${regular.filter(t=>t.status!=="Done").length} open</span>
         </div>
-        <div id="task-list-regular" class="task-list">${regularHtml}</div>
+        <div class="overview-tasks-scroll">
+          <div id="task-list-regular" class="task-list">${regularHtml}</div>
+        </div>
       </div>
-      <div class="overview-sidebar">
+      <div class="overview-status-row">
         <div class="filings-panel">
           <div class="filings-header">
             <span class="filings-header-icon">⚖️</span>
