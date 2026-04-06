@@ -90,7 +90,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 @media (max-width:900px) { .three-col { grid-template-columns:1fr; } }
 
 /* ── BENEFITS PANEL ── */
-.benefits-panel { background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; position:sticky; top:100px; }
+.benefits-panel { background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
 .benefits-header { background:var(--surface2); padding:14px 16px; display:flex; align-items:center; gap:8px; border-bottom:1px solid var(--border); }
 .benefits-header-icon { font-size:1.1rem; }
 .benefits-header-title { font-size:.9rem; font-weight:700; color:#67e8f9; letter-spacing:.03em; text-transform:uppercase; }
@@ -99,7 +99,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .benefits-empty { padding:20px 16px; text-align:center; color:var(--text3); font-size:.85rem; }
 
 /* ── FILINGS PANEL ── */
-.filings-panel { background:var(--filing-surface); border:1px solid var(--filing-border); border-radius:14px; overflow:hidden; position:sticky; top:100px; }
+.filings-panel { background:var(--filing-surface); border:1px solid var(--filing-border); border-radius:14px; overflow:hidden; }
 .filings-header { background:#2a1500; padding:14px 16px; display:flex; align-items:center; gap:8px; border-bottom:1px solid var(--filing-border); }
 .filings-header-icon { font-size:1.1rem; }
 .filings-header-title { font-size:.9rem; font-weight:700; color:#fb923c; letter-spacing:.03em; text-transform:uppercase; }
@@ -311,6 +311,27 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .cal-chip-vacate { background:rgba(139,92,246,.2); color:#c4b5fd; }
 .cal-chip-shopping { background:rgba(103,232,249,.15); color:#67e8f9; }
 @media (max-width:700px) { .cal-day { min-height:56px; padding:4px 5px; } .cal-chip { font-size:.6rem; padding:1px 4px; } }
+
+/* ── OVERVIEW SIDEBAR ── */
+.overview-sidebar { display:flex; flex-direction:column; gap:16px; }
+.overview-layout { display:grid; grid-template-columns:1fr 300px; gap:20px; align-items:start; }
+@media (max-width:900px) { .overview-layout { grid-template-columns:1fr; } }
+
+/* ── EVICTIONS PANEL ── */
+.evictions-panel { background:#150808; border:1px solid #7a1515; border-radius:14px; overflow:hidden; }
+.evictions-header { background:#1f0c0c; padding:14px 16px; display:flex; align-items:center; gap:8px; border-bottom:1px solid #7a1515; }
+.evictions-header-icon { font-size:1.1rem; }
+.evictions-header-title { font-size:.9rem; font-weight:700; color:#f87171; letter-spacing:.03em; text-transform:uppercase; }
+.evictions-header-count { margin-left:auto; background:#5a1515; color:#f87171; font-size:.75rem; font-weight:600; padding:2px 8px; border-radius:10px; }
+.evictions-list { padding:8px; }
+.evictions-empty { padding:20px 16px; text-align:center; color:var(--text3); font-size:.85rem; }
+.eviction-card { background:#1e0e0e; border:1px solid #5a1515; border-radius:10px; padding:10px 12px; margin-bottom:6px; cursor:pointer; transition:all .15s; }
+.eviction-card:hover { border-color:#f87171; }
+.eviction-client { font-size:.88rem; font-weight:600; color:var(--text); margin-bottom:7px; }
+.eviction-date-block { margin-bottom:5px; }
+.eviction-date-label { font-size:.67rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; display:block; margin-bottom:1px; }
+.eviction-date-value { font-size:.85rem; font-weight:700; }
+.eviction-date-sub { font-size:.72rem; color:var(--text3); margin-left:5px; }
 
 /* ── CASE DETAIL OVERLAY ── */
 .case-detail-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:999; align-items:flex-start; justify-content:center; padding:20px; overflow-y:auto; }
@@ -662,16 +683,18 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
       </div>
     </div>
 
+    <div class="checkbox-row">
+      <input type="checkbox" id="case-noe-served">
+      <label for="case-noe-served">NOE Served</label>
+    </div>
     <div class="two-fields">
       <div class="field-row">
-        <label class="field-label">Earliest Eviction Date</label>
+        <label class="field-label">Earliest Eviction Date (from NOE)</label>
         <input id="case-eviction-date" type="date" class="field-input">
       </div>
-      <div class="field-row" style="display:flex;flex-direction:column;justify-content:flex-end;">
-        <div class="checkbox-row" style="margin-bottom:0;padding-bottom:10px;">
-          <input type="checkbox" id="case-noe-served">
-          <label for="case-noe-served">NOE Served</label>
-        </div>
+      <div class="field-row">
+        <label class="field-label">Scheduled Eviction Date (marshal)</label>
+        <input id="case-scheduled-eviction-date" type="date" class="field-input">
       </div>
     </div>
 
@@ -1358,8 +1381,11 @@ function renderTab(tab) {
     ? regular.map(t => renderTaskCard(t, false)).join("")
     : `<div class="empty-state"><div class="es-icon">✅</div><p>No tasks here</p></div>`;
 
+  const { count: benCount, body: benBody } = buildBenefitsPanelHtml();
+  const { count: evCount, body: evBody } = buildEvictionsPanelHtml();
+
   el.innerHTML = `
-    <div class="three-col">
+    <div class="overview-layout">
       <div class="main-col">
         <div class="section-header">
           <span class="section-title">Tasks & Actions</span>
@@ -1367,22 +1393,32 @@ function renderTab(tab) {
         </div>
         <div id="task-list-regular" class="task-list">${regularHtml}</div>
       </div>
-      <div class="filings-panel">
-        <div class="filings-header">
-          <span class="filings-header-icon">⚖️</span>
-          <span class="filings-header-title">Filings & Motions</span>
-          <span class="filings-header-count">${filings.filter(t=>t.status!=="Done").length} open</span>
+      <div class="overview-sidebar">
+        <div class="filings-panel">
+          <div class="filings-header">
+            <span class="filings-header-icon">⚖️</span>
+            <span class="filings-header-title">Filings & Motions</span>
+            <span class="filings-header-count">${filings.filter(t=>t.status!=="Done").length} open</span>
+          </div>
+          <div id="task-list-filings" class="filings-list">${filingsHtml}</div>
         </div>
-        <div id="task-list-filings" class="filings-list">${filingsHtml}</div>
+        <div class="benefits-panel">
+          <div class="benefits-header">
+            <span class="benefits-header-icon">🏠</span>
+            <span class="benefits-header-title">Benefit Applications</span>
+            <span class="benefits-header-count">${benCount} open</span>
+          </div>
+          <div class="benefits-list">${benBody}</div>
+        </div>
+        <div class="evictions-panel">
+          <div class="evictions-header">
+            <span class="evictions-header-icon">⚠️</span>
+            <span class="evictions-header-title">Evictions</span>
+            <span class="evictions-header-count">${evCount}</span>
+          </div>
+          <div class="evictions-list">${evBody}</div>
+        </div>
       </div>
-      ${(({count,body}) => `<div class="benefits-panel">
-        <div class="benefits-header">
-          <span class="benefits-header-icon">🏠</span>
-          <span class="benefits-header-title">Benefit Applications</span>
-          <span class="benefits-header-count">${count} open</span>
-        </div>
-        <div class="benefits-list">${body}</div>
-      </div>`)(buildBenefitsPanelHtml())}
     </div>`;
 
   attachDragDrop("task-list-regular", regular);
@@ -1675,6 +1711,51 @@ function renderAppCard(app, readonly = false) {
     ${metaParts.length ? `<div class="app-meta-row">${metaParts.join(' · ')}</div>` : ''}
     ${warnings.length ? `<div class="app-warnings">${warnings.join('')}</div>` : ''}
   </div>`;
+}
+
+function buildEvictionsPanelHtml() {
+  const evictions = cases.filter(c => c.noe_served && c.status !== 'Closed')
+    .sort((a, b) => {
+      const aDate = a.scheduled_eviction_date || a.earliest_eviction_date || '9999-99-99';
+      const bDate = b.scheduled_eviction_date || b.earliest_eviction_date || '9999-99-99';
+      return aDate.localeCompare(bDate);
+    });
+
+  if (!evictions.length) {
+    return { count: 0, body: '<div class="evictions-empty">No active evictions</div>' };
+  }
+
+  const body = evictions.map(c => {
+    let datesHtml = '';
+
+    if (c.scheduled_eviction_date) {
+      const d = daysUntil(c.scheduled_eviction_date);
+      const color = d <= 0 ? '#f87171' : d <= 7 ? '#fbbf24' : '#f87171';
+      const lbl = d < 0 ? `${Math.abs(d)}d ago` : d === 0 ? 'TODAY' : `in ${d}d`;
+      datesHtml += `<div class="eviction-date-block">
+        <span class="eviction-date-label" style="color:#f87171">Scheduled (marshal)</span>
+        <span class="eviction-date-value" style="color:${color}">${fmtDate(c.scheduled_eviction_date)}</span>
+        <span class="eviction-date-sub">${lbl}</span>
+      </div>`;
+    }
+
+    if (c.earliest_eviction_date) {
+      const d = daysUntil(c.earliest_eviction_date);
+      const lbl = d < 0 ? `${Math.abs(d)}d ago` : d === 0 ? 'TODAY' : `in ${d}d`;
+      datesHtml += `<div class="eviction-date-block">
+        <span class="eviction-date-label" style="color:#fb923c">Earliest (NOE)</span>
+        <span class="eviction-date-value">${fmtDate(c.earliest_eviction_date)}</span>
+        <span class="eviction-date-sub">${lbl}</span>
+      </div>`;
+    }
+
+    return `<div class="eviction-card" onclick="openCaseDetailForCase('${c.id}')">
+      <div class="eviction-client client-name-link" onclick="event.stopPropagation(); openCaseDetailForCase('${c.id}')">${escHtml(c.client)}</div>
+      ${datesHtml}
+    </div>`;
+  }).join('');
+
+  return { count: evictions.length, body };
 }
 
 function buildBenefitsPanelHtml() {
@@ -2042,7 +2123,7 @@ function clearCaseModal() {
    'case-ls-url','case-ny-url','case-ec-url'].forEach(id => {
     document.getElementById(id).value = '';
   });
-  ['case-payment-date','case-vacate-date','case-eviction-date','case-nto-date'].forEach(id => {
+  ['case-payment-date','case-vacate-date','case-eviction-date','case-scheduled-eviction-date','case-nto-date'].forEach(id => {
     document.getElementById(id).value = '';
   });
   document.getElementById('case-type').value = 'NP';
@@ -2082,6 +2163,7 @@ function openEditCaseModal(id) {
   document.getElementById('case-payment-date').value = c.payment_date || '';
   document.getElementById('case-vacate-date').value = c.vacate_date || '';
   document.getElementById('case-eviction-date').value = c.earliest_eviction_date || '';
+  document.getElementById('case-scheduled-eviction-date').value = c.scheduled_eviction_date || '';
   document.getElementById('case-nto-date').value = c.nto_date || '';
   document.getElementById('case-noe-served').checked = !!c.noe_served;
   document.getElementById('case-letter-drafted').checked = !!c.closing_letter_drafted;
@@ -2114,6 +2196,7 @@ async function handleCaseSave() {
     payment_date: document.getElementById('case-payment-date').value || null,
     vacate_date: document.getElementById('case-vacate-date').value || null,
     earliest_eviction_date: document.getElementById('case-eviction-date').value || null,
+    scheduled_eviction_date: document.getElementById('case-scheduled-eviction-date').value || null,
     nto_date: document.getElementById('case-nto-date').value || null,
     noe_served: document.getElementById('case-noe-served').checked,
     closing_letter_drafted: document.getElementById('case-letter-drafted').checked,
