@@ -288,6 +288,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .case-link-ls { background:rgba(99,179,237,.12); color:#63b3ed; border-color:rgba(99,179,237,.3); }
 .case-link-ny { background:rgba(154,205,50,.1); color:#a3c65a; border-color:rgba(154,205,50,.25); }
 .case-link-ec { background:rgba(251,191,36,.1); color:#f0a500; border-color:rgba(251,191,36,.25); }
+.case-link-cal { background:rgba(52,211,153,.1); color:#34d399; border-color:rgba(52,211,153,.25); }
 
 /* ── CALENDAR ── */
 .cal-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
@@ -1141,15 +1142,20 @@ function renderCaseDetail() {
     if (linkBtns.length) headerHtml += `<div class="case-links" style="margin-top:8px">${linkBtns.join('')}</div>`;
   }
 
+  const calBtn = caseRecord && caseRecord.nto_date
+    ? `<button class="case-link-btn case-link-cal" style="font-size:.8rem;padding:5px 10px" onclick="downloadNtoIcs('${caseRecord.id}')">📅 Add NTO to Outlook</button>`
+    : '';
   if (caseDetailEditMode) {
     headerHtml += `<div class="case-detail-actions">
       ${caseRecord ? `<button class="btn-edit-case" onclick="closeCaseDetail(); openEditCaseModal('${caseRecord.id}')">✏️ Edit Case</button>` : ''}
+      ${calBtn}
       <button class="btn-cancel" style="padding:7px 16px;font-size:.85rem" onclick="caseDetailEditMode=false; renderCaseDetail()">View Only</button>
       <button class="btn-cancel" style="padding:7px 16px;font-size:.85rem" onclick="closeCaseDetail()">Close</button>
     </div>`;
   } else {
     headerHtml += `<div class="case-detail-actions">
       <button class="btn-edit-case" onclick="caseDetailEditMode=true; renderCaseDetail()">✏️ Edit</button>
+      ${calBtn}
       <button class="btn-cancel" style="padding:7px 16px;font-size:.85rem" onclick="closeCaseDetail()">Close</button>
     </div>`;
   }
@@ -1188,6 +1194,51 @@ function renderCaseDetail() {
 
   document.getElementById('case-detail-body').innerHTML = bodyHtml;
   attachStatusHandlers();
+}
+
+// ═══════════════════════════════════════════════════
+// ICS / OUTLOOK EXPORT
+// ═══════════════════════════════════════════════════
+function icsEscape(s) {
+  return (s || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+}
+
+function downloadNtoIcs(caseId) {
+  const c = cases.find(x => x.id === caseId);
+  if (!c || !c.nto_date) return;
+
+  const dateStr = c.nto_date.replace(/-/g, ''); // YYYYMMDD
+  const subject = icsEscape(c.client + (c.part ? ' (Part ' + c.part + ')' : ''));
+  const descParts = [];
+  if (c.index_number) descParts.push('Index: ' + c.index_number);
+  if (c.landlord)     descParts.push('Petitioner: ' + c.landlord);
+  if (c.opa)          descParts.push('OPA: ' + c.opa);
+  const description = icsEscape(descParts.join('\n'));
+  const uid = `nto-${caseId}-${dateStr}@casedashboard`;
+
+  const ics = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Case Dashboard//EN',
+    'BEGIN:VEVENT',
+    `UID:${uid}`,
+    `DTSTART:${dateStr}T093000`,
+    `DTEND:${dateStr}T100000`,
+    `SUMMARY:${subject}`,
+    `DESCRIPTION:${description}`,
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n');
+
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${c.client} NTO ${c.nto_date}.ics`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 // ═══════════════════════════════════════════════════
@@ -1423,6 +1474,7 @@ function renderCaseCard(c) {
   if (c.legalserver_url) linkBtns.push(`<a class="case-link-btn case-link-ls" href="${escHtml(c.legalserver_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">⚖️ LegalServer</a>`);
   if (c.nyscef_url) linkBtns.push(`<a class="case-link-btn case-link-ny" href="${escHtml(c.nyscef_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">📄 NYSCEF</a>`);
   if (c.ecourts_url) linkBtns.push(`<a class="case-link-btn case-link-ec" href="${escHtml(c.ecourts_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🏛️ eCourts</a>`);
+  if (c.nto_date) linkBtns.push(`<button class="case-link-btn case-link-cal" onclick="event.stopPropagation(); downloadNtoIcs('${c.id}')">📅 Add NTO to Outlook</button>`);
   const linksHtml = linkBtns.length ? `<div class="case-links">${linkBtns.join('')}</div>` : '';
 
   return `<div class="case-card" onclick="openEditCaseModal('${c.id}')">
