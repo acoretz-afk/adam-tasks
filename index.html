@@ -848,6 +848,7 @@ let calYear = new Date().getFullYear();
 let calMonth = new Date().getMonth();
 let caseDetailClient = null;
 let caseDetailEditMode = false;
+let caseDetailShowCompleted = false;
 
 // ═══════════════════════════════════════════════════
 // AUTH
@@ -1121,6 +1122,7 @@ function openCaseDetailForCase(caseId) {
 function openCaseDetail(clientName) {
   caseDetailClient = clientName;
   caseDetailEditMode = false;
+  caseDetailShowCompleted = false;
   renderCaseDetail();
   document.getElementById('case-detail-overlay').style.display = 'flex';
 }
@@ -1218,31 +1220,46 @@ function renderCaseDetail() {
   const doneRegular = clientRegular.filter(t => t.status === 'Done');
   const openFilings = clientFilings.filter(t => t.status !== 'Done');
   const doneFilings = clientFilings.filter(t => t.status === 'Done');
+  const openApps = clientApps.filter(a => !RESOLVED_STATUSES.has(a.status));
+  const resolvedApps = clientApps.filter(a => RESOLVED_STATUSES.has(a.status));
+
+  const hiddenCount = doneRegular.length + doneFilings.length + resolvedApps.length;
+  const ro = !caseDetailEditMode;
+
+  const shownRegular = caseDetailShowCompleted ? [...openRegular, ...doneRegular] : openRegular;
+  const shownFilings = caseDetailShowCompleted ? [...openFilings, ...doneFilings] : openFilings;
+  const shownApps    = caseDetailShowCompleted ? clientApps : openApps;
 
   let bodyHtml = '';
 
-  const ro = !caseDetailEditMode;
-
   bodyHtml += `<div>
     <div class="case-detail-section-title">📋 Tasks & Actions <span>${openRegular.length} open</span></div>
-    ${openRegular.length || doneRegular.length
-      ? [...openRegular, ...doneRegular].map(t => renderTaskCard(t, false, ro)).join('')
-      : `<div class="case-detail-empty">No tasks for this client</div>`}
+    ${shownRegular.length
+      ? shownRegular.map(t => renderTaskCard(t, false, ro)).join('')
+      : `<div class="case-detail-empty">${openRegular.length === 0 ? 'No tasks for this client' : 'No open tasks'}</div>`}
   </div>`;
 
   bodyHtml += `<div>
     <div class="case-detail-section-title">⚖️ Filings & Motions <span>${openFilings.length} open</span></div>
-    ${openFilings.length || doneFilings.length
-      ? [...openFilings, ...doneFilings].map(t => renderTaskCard(t, true, ro)).join('')
-      : `<div class="case-detail-empty">No filings for this client</div>`}
+    ${shownFilings.length
+      ? shownFilings.map(t => renderTaskCard(t, true, ro)).join('')
+      : `<div class="case-detail-empty">${openFilings.length === 0 ? 'No filings for this client' : 'No open filings'}</div>`}
   </div>`;
 
   bodyHtml += `<div>
-    <div class="case-detail-section-title">🏠 Benefit Applications <span>${clientApps.length}</span></div>
-    ${clientApps.length
-      ? clientApps.map(a => renderAppCard(a, ro)).join('')
-      : `<div class="case-detail-empty">No benefit applications for this client</div>`}
+    <div class="case-detail-section-title">🏠 Benefit Applications <span>${openApps.length} open</span></div>
+    ${shownApps.length
+      ? shownApps.map(a => renderAppCard(a, ro)).join('')
+      : `<div class="case-detail-empty">${openApps.length === 0 ? 'No benefit applications for this client' : 'No open applications'}</div>`}
   </div>`;
+
+  if (hiddenCount > 0) {
+    bodyHtml += `<div style="text-align:center;padding-bottom:4px">
+      <button class="btn-cancel" style="font-size:.8rem;padding:6px 14px" onclick="caseDetailShowCompleted=!caseDetailShowCompleted; renderCaseDetail()">
+        ${caseDetailShowCompleted ? 'Hide completed' : `Show ${hiddenCount} completed / resolved`}
+      </button>
+    </div>`;
+  }
 
   document.getElementById('case-detail-body').innerHTML = bodyHtml;
   attachStatusHandlers();
