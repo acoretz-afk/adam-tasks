@@ -1197,7 +1197,7 @@ function renderCaseDetail() {
   }
 
   const calBtn = caseRecord && caseRecord.nto_date
-    ? `<button class="case-link-btn case-link-cal" style="font-size:.8rem;padding:5px 10px" onclick="downloadNtoIcs('${caseRecord.id}')">📅 Add NTO to Outlook</button>`
+    ? `<button class="case-link-btn case-link-cal" style="font-size:.8rem;padding:5px 10px" onclick="openNtoInOutlook('${caseRecord.id}')">📅 Add NTO to Outlook</button>`
     : '';
   if (caseDetailEditMode) {
     headerHtml += `<div class="case-detail-actions">
@@ -1266,53 +1266,27 @@ function renderCaseDetail() {
 }
 
 // ═══════════════════════════════════════════════════
-// ICS / OUTLOOK EXPORT
+// OUTLOOK WEB EXPORT
 // ═══════════════════════════════════════════════════
-function icsEscape(s) {
-  return (s || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
-}
-
-function downloadNtoIcs(caseId) {
+function openNtoInOutlook(caseId) {
   const c = cases.find(x => x.id === caseId);
   if (!c || !c.nto_date) return;
 
-  const dateStr = c.nto_date.replace(/-/g, ''); // YYYYMMDD
-  const subject = icsEscape(c.client + (c.part ? ' (Part ' + c.part + ')' : ''));
+  const subject = c.client + (c.part ? ' (Part ' + c.part + ')' : '');
   const descParts = [];
   if (c.index_number) descParts.push('Index: ' + c.index_number);
   if (c.landlord)     descParts.push('Petitioner: ' + c.landlord);
   if (c.opa)          descParts.push('OPA: ' + c.opa);
-  const description = icsEscape(descParts.join('\n'));
-  const uid = `nto-${caseId}-${dateStr}@casedashboard`;
 
-  const ics = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//Case Dashboard//EN',
-    'METHOD:REQUEST',
-    'BEGIN:VEVENT',
-    `UID:${uid}`,
-    `DTSTART:${dateStr}T093000`,
-    `DTEND:${dateStr}T100000`,
-    `SUMMARY:${subject}`,
-    `DESCRIPTION:${description}`,
-    'ORGANIZER;CN=A Coretz:mailto:acoretz@nylag.org',
-    'ATTENDEE;CN=A Coretz;ROLE=REQ-PARTICIPANT:mailto:acoretz@nylag.org',
-    'ATTENDEE;CN=E Margolis;ROLE=REQ-PARTICIPANT:mailto:emargolis@nylag.org',
-    'ATTENDEE;CN=Queens TRU Cases;ROLE=REQ-PARTICIPANT:mailto:queensTRUcases@nylag.org',
-    'END:VEVENT',
-    'END:VCALENDAR',
-  ].join('\r\n');
+  const params = new URLSearchParams({
+    subject,
+    startdt: c.nto_date + 'T09:30:00',
+    enddt:   c.nto_date + 'T10:00:00',
+    body:    descParts.join('\n'),
+    to:      'emargolis@nylag.org;queensTRUcases@nylag.org',
+  });
 
-  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${c.client} NTO ${c.nto_date}.ics`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  window.open('https://outlook.office.com/calendar/action/compose?' + params.toString(), '_blank');
 }
 
 // ═══════════════════════════════════════════════════
@@ -1563,7 +1537,7 @@ function renderCaseCard(c) {
   if (c.legalserver_url) linkBtns.push(`<a class="case-link-btn case-link-ls" href="${escHtml(c.legalserver_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">⚖️ LegalServer</a>`);
   if (c.nyscef_url) linkBtns.push(`<a class="case-link-btn case-link-ny" href="${escHtml(c.nyscef_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">📄 NYSCEF</a>`);
   if (c.ecourts_url) linkBtns.push(`<a class="case-link-btn case-link-ec" href="${escHtml(c.ecourts_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🏛️ eCourts</a>`);
-  if (c.nto_date) linkBtns.push(`<button class="case-link-btn case-link-cal" onclick="event.stopPropagation(); downloadNtoIcs('${c.id}')">📅 Add NTO to Outlook</button>`);
+  if (c.nto_date) linkBtns.push(`<button class="case-link-btn case-link-cal" onclick="event.stopPropagation(); openNtoInOutlook('${c.id}')">📅 Add NTO to Outlook</button>`);
   const linksHtml = linkBtns.length ? `<div class="case-links">${linkBtns.join('')}</div>` : '';
 
   return `<div class="case-card" onclick="openEditCaseModal('${c.id}')">
