@@ -1296,6 +1296,8 @@ function downloadNtoIcs(caseId) {
     `DTEND:${dateStr}T100000`,
     `SUMMARY:${subject}`,
     `DESCRIPTION:${description}`,
+    'ORGANIZER;CN=A Coretz:mailto:acoretz@nylag.org',
+    'ATTENDEE;CN=A Coretz;ROLE=REQ-PARTICIPANT:mailto:acoretz@nylag.org',
     'ATTENDEE;CN=E Margolis;ROLE=REQ-PARTICIPANT:mailto:emargolis@nylag.org',
     'ATTENDEE;CN=Queens TRU Cases;ROLE=REQ-PARTICIPANT:mailto:queensTRUcases@nylag.org',
     'END:VEVENT',
