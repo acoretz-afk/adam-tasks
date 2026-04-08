@@ -927,6 +927,17 @@ async function loadTasks() {
   tasks = data || [];
   renderCurrentTab();
   if (caseDetailClient) renderCaseDetail();
+  await bumpOverdueTasks();
+}
+
+async function bumpOverdueTasks() {
+  const todayStr = today();
+  const overdue = tasks.filter(t => t.status !== 'Done' && t.deadline && t.deadline < todayStr);
+  if (!overdue.length) return;
+  await Promise.all(overdue.map(t => db.from('tasks').update({ deadline: todayStr, updated_at: new Date().toISOString() }).eq('id', t.id)));
+  overdue.forEach(t => { t.deadline = todayStr; });
+  renderCurrentTab();
+  if (caseDetailClient) renderCaseDetail();
 }
 
 async function saveTask(taskData, id) {
