@@ -282,6 +282,8 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .status-pill-closed { background:var(--surface3); color:var(--text3); }
 .case-notes-text { font-size:.75rem; color:var(--text3); margin-top:5px; line-height:1.4; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden; }
 .case-noe-badge { font-size:.68rem; font-weight:700; color:#f87171; background:rgba(224,92,92,.12); padding:2px 6px; border-radius:5px; }
+.posture-badge { display:inline-flex; align-items:center; font-size:.7rem; font-weight:600; padding:2px 8px; border-radius:6px; background:rgba(167,139,250,.15); color:#a78bfa; }
+.case-stip-summary { font-size:.75rem; color:var(--text2); margin-top:4px; line-height:1.4; }
 .case-links { display:flex; gap:6px; margin-top:8px; }
 .case-link-btn { display:inline-flex; align-items:center; gap:4px; font-size:.72rem; font-weight:700; padding:3px 9px; border-radius:6px; text-decoration:none; transition:filter .15s; border:1px solid; }
 .case-link-btn:hover { filter:brightness(1.25); }
@@ -670,24 +672,77 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
     </div>
 
     <div class="field-row">
-      <label class="field-label">Court / NTO Notes</label>
-      <input id="case-court-notes" type="text" class="field-input" placeholder="e.g. PTC, Sent to Part X, OSC hearing">
+      <label class="field-label">Procedural Posture</label>
+      <select id="case-posture" class="field-select" onchange="updateCaseFields()">
+        <option value="">— Not set —</option>
+        <option value="Predisposition – Resolution Part">Predisposition – Resolution Part</option>
+        <option value="Predisposition – Trial Part">Predisposition – Trial Part</option>
+        <option value="Settled – With Judgment">Settled – With Judgment</option>
+        <option value="Settled Per Stip – No Judgment">Settled Per Stip – No Judgment</option>
+      </select>
+    </div>
+
+    <div id="case-stip-section" style="display:none">
+      <div class="field-row">
+        <label class="field-label">Stip Type</label>
+        <select id="case-stip-type" class="field-select" onchange="updateCaseFields()">
+          <option value="">— Select type —</option>
+          <option value="Payment">Payment</option>
+          <option value="Move Out">Move Out</option>
+          <option value="Probationary">Probationary</option>
+        </select>
+      </div>
+
+      <div id="case-stip-payment-fields" style="display:none">
+        <div class="two-fields">
+          <div class="field-row">
+            <label class="field-label">Arrears Amount ($)</label>
+            <input id="case-arrears-amount" type="number" step="0.01" class="field-input" placeholder="e.g. 5000.00">
+          </div>
+          <div class="field-row">
+            <label class="field-label">Arrears Through</label>
+            <input id="case-arrears-through-date" type="date" class="field-input">
+          </div>
+        </div>
+        <div class="field-row">
+          <label class="field-label">Payment Date</label>
+          <input id="case-payment-date" type="date" class="field-input">
+        </div>
+      </div>
+
+      <div id="case-stip-moveout-fields" style="display:none">
+        <div class="two-fields">
+          <div class="field-row">
+            <label class="field-label">Warrant Stay Date</label>
+            <input id="case-warrant-stay-date" type="date" class="field-input">
+          </div>
+          <div class="field-row">
+            <label class="field-label">EED (Stip)</label>
+            <input id="case-stip-eed" type="date" class="field-input">
+          </div>
+        </div>
+        <div class="field-row">
+          <label class="field-label">Vacate Date</label>
+          <input id="case-vacate-date" type="date" class="field-input">
+        </div>
+      </div>
+
+      <div id="case-stip-prob-fields" style="display:none">
+        <div class="field-row">
+          <label class="field-label">Probationary Period Through</label>
+          <input id="case-probationary-through-date" type="date" class="field-input">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <label class="field-label">Stip Notes</label>
+        <textarea id="case-stip-notes" class="field-textarea" style="min-height:55px" placeholder="Stip terms, conditions..."></textarea>
+      </div>
     </div>
 
     <div class="field-row">
-      <label class="field-label">Stipulation Notes</label>
-      <textarea id="case-stip-notes" class="field-textarea" style="min-height:55px" placeholder="Stip terms, amounts owed, conditions..."></textarea>
-    </div>
-
-    <div class="two-fields">
-      <div class="field-row">
-        <label class="field-label">Payment Date (stip)</label>
-        <input id="case-payment-date" type="date" class="field-input">
-      </div>
-      <div class="field-row">
-        <label class="field-label">Vacate Date (stip)</label>
-        <input id="case-vacate-date" type="date" class="field-input">
-      </div>
+      <label class="field-label">Court / NTO Notes</label>
+      <input id="case-court-notes" type="text" class="field-input" placeholder="e.g. PTC, Sent to Part X, OSC hearing">
     </div>
 
     <div class="checkbox-row">
@@ -1149,6 +1204,7 @@ function renderCaseDetail() {
     headerHtml += `<span class="case-type-badge case-type-${caseRecord.case_type}">${caseRecord.case_type}</span>
       <span class="case-status-pill ${statusClass}">${escHtml(caseRecord.status)}</span>`;
     if (caseRecord.index_number) headerHtml += `<span class="case-index">${escHtml(caseRecord.index_number)}</span>`;
+    if (caseRecord.procedural_posture) headerHtml += `<span class="posture-badge">${escHtml(caseRecord.procedural_posture)}</span>`;
   }
   headerHtml += `</div>`;
 
@@ -1180,13 +1236,37 @@ function renderCaseDetail() {
     if (caseRecord.earliest_eviction_date) {
       const d = daysUntil(caseRecord.earliest_eviction_date);
       const cls = d < 0 ? 'case-date-urgent' : d <= 14 ? 'case-date-warn' : 'case-date-ok';
-      chips.push(`<span class="case-date-chip ${cls}">⚠️ Eviction ${fmtDate(caseRecord.earliest_eviction_date)} · ${d < 0 ? `${Math.abs(d)}d ago` : `${d}d`}</span>`);
+      chips.push(`<span class="case-date-chip ${cls}">⚠️ EED (NOE) ${fmtDate(caseRecord.earliest_eviction_date)} · ${d < 0 ? `${Math.abs(d)}d ago` : `${d}d`}</span>`);
+    }
+    if (caseRecord.stip_eed) {
+      const d = daysUntil(caseRecord.stip_eed);
+      const cls = d < 0 ? 'case-date-urgent' : d <= 14 ? 'case-date-warn' : 'case-date-ok';
+      chips.push(`<span class="case-date-chip ${cls}">📅 EED (Stip) ${fmtDate(caseRecord.stip_eed)} · ${d < 0 ? `${Math.abs(d)}d ago` : `${d}d`}</span>`);
+    }
+    if (caseRecord.warrant_stay_date) {
+      const d = daysUntil(caseRecord.warrant_stay_date);
+      const cls = d < 0 ? 'case-date-ok' : d <= 14 ? 'case-date-warn' : 'case-date-ok';
+      chips.push(`<span class="case-date-chip ${cls}">⏸️ Stay ${fmtDate(caseRecord.warrant_stay_date)}</span>`);
+    }
+    if (caseRecord.probationary_through_date) {
+      const d = daysUntil(caseRecord.probationary_through_date);
+      const cls = d < 0 ? 'case-date-ok' : d <= 30 ? 'case-date-warn' : 'case-date-ok';
+      chips.push(`<span class="case-date-chip ${cls}">📋 Prob. Through ${fmtDate(caseRecord.probationary_through_date)}</span>`);
     }
     if (chips.length) headerHtml += `<div class="case-meta-row" style="margin-top:8px">${chips.join('')}</div>`;
 
+    // Stip summary line
+    if (caseRecord.stip_type) {
+      const stipParts = [`${escHtml(caseRecord.stip_type)} Stip`];
+      if (caseRecord.arrears_amount != null) stipParts.push(`$${Number(caseRecord.arrears_amount).toLocaleString()} arrears`);
+      if (caseRecord.arrears_through_date) stipParts.push(`through ${fmtDate(caseRecord.arrears_through_date)}`);
+      headerHtml += `<div class="case-stip-summary">📋 ${stipParts.join(' · ')}${caseRecord.stip_notes ? ' — ' + escHtml(caseRecord.stip_notes) : ''}</div>`;
+    } else if (caseRecord.stip_notes) {
+      headerHtml += `<div class="case-stip-summary">📋 ${escHtml(caseRecord.stip_notes)}</div>`;
+    }
+
     // Notes
     if (caseRecord.court_notes) headerHtml += `<div class="case-notes-text" style="margin-top:6px">🏛️ ${escHtml(caseRecord.court_notes)}</div>`;
-    if (caseRecord.stip_notes) headerHtml += `<div class="case-notes-text">📋 ${escHtml(caseRecord.stip_notes)}</div>`;
     if (caseRecord.resolution) headerHtml += `<div class="case-notes-text" style="color:var(--text2)">→ ${escHtml(caseRecord.resolution)}</div>`;
 
     const linkBtns = [];
@@ -1478,6 +1558,8 @@ function renderCaseCard(c) {
   const statusClass = c.status === 'Active' ? 'status-pill-active' : c.status === 'Ready to Close' ? 'status-pill-ready' : 'status-pill-closed';
   const statusPill = caseFilter === 'all' ? `<span class="case-status-pill ${statusClass}">${escHtml(c.status)}</span>` : '';
 
+  const postureBadge = c.procedural_posture ? `<span class="posture-badge">${escHtml(c.procedural_posture)}</span>` : '';
+
   const partyParts = [];
   if (c.landlord) partyParts.push(`Petitioner: ${escHtml(c.landlord)}`);
   if (c.opa) partyParts.push(`OPA: ${escHtml(c.opa)}`);
@@ -1515,7 +1597,25 @@ function renderCaseCard(c) {
     const d = daysUntil(c.earliest_eviction_date);
     const cls = d < 0 ? 'case-date-urgent' : d <= 14 ? 'case-date-warn' : 'case-date-ok';
     const lbl = d < 0 ? `${Math.abs(d)}d ago` : d === 0 ? 'Today' : `${d}d`;
-    chips.push(`<span class="case-date-chip ${cls}">⚠️ Eviction ${fmtDate(c.earliest_eviction_date)} · ${lbl}</span>`);
+    chips.push(`<span class="case-date-chip ${cls}">⚠️ EED (NOE) ${fmtDate(c.earliest_eviction_date)} · ${lbl}</span>`);
+  }
+
+  // Stip-specific dates
+  if (c.stip_eed) {
+    const d = daysUntil(c.stip_eed);
+    const cls = d < 0 ? 'case-date-urgent' : d <= 14 ? 'case-date-warn' : 'case-date-ok';
+    const lbl = d < 0 ? `${Math.abs(d)}d ago` : d === 0 ? 'Today' : `${d}d`;
+    chips.push(`<span class="case-date-chip ${cls}">📅 EED (Stip) ${fmtDate(c.stip_eed)} · ${lbl}</span>`);
+  }
+  if (c.warrant_stay_date) {
+    const d = daysUntil(c.warrant_stay_date);
+    const cls = d < 0 ? 'case-date-ok' : d <= 14 ? 'case-date-warn' : 'case-date-ok';
+    chips.push(`<span class="case-date-chip ${cls}">⏸️ Stay ${fmtDate(c.warrant_stay_date)}</span>`);
+  }
+  if (c.probationary_through_date) {
+    const d = daysUntil(c.probationary_through_date);
+    const cls = d < 0 ? 'case-date-ok' : d <= 30 ? 'case-date-warn' : 'case-date-ok';
+    chips.push(`<span class="case-date-chip ${cls}">📋 Prob. Through ${fmtDate(c.probationary_through_date)}</span>`);
   }
 
   if (c.noe_served) chips.push(`<span class="case-noe-badge">NOE Served</span>`);
@@ -1529,6 +1629,7 @@ function renderCaseCard(c) {
 
   const metaRow = chips.length ? `<div class="case-meta-row">${chips.join('')}</div>` : '';
 
+  const postureHtml = postureBadge ? `<div style="margin-top:5px">${postureBadge}${c.stip_type ? `&nbsp;<span style="font-size:.72rem;color:var(--text2)">${escHtml(c.stip_type)} Stip</span>` : ''}${c.arrears_amount != null && c.stip_type === 'Payment' ? `&nbsp;<span style="font-size:.72rem;color:var(--text2)">· $${Number(c.arrears_amount).toLocaleString()}</span>` : ''}</div>` : '';
   const courtNote = c.court_notes ? `<div class="case-notes-text">🏛️ ${escHtml(c.court_notes)}</div>` : '';
   const stipNote = c.stip_notes ? `<div class="case-notes-text">📋 ${escHtml(c.stip_notes)}</div>` : '';
   const resolution = c.resolution ? `<div class="case-notes-text" style="color:var(--text2)">→ ${escHtml(c.resolution)}</div>` : '';
@@ -1548,6 +1649,7 @@ function renderCaseCard(c) {
       ${statusPill}
     </div>
     ${partyRow}
+    ${postureHtml}
     ${metaRow}
     ${courtNote}
     ${stipNote}
@@ -2128,6 +2230,15 @@ function updateCaseFields() {
   const isClosing = status === 'Ready to Close' || isClosed;
   document.getElementById('case-resolution-row').style.display = isClosed ? 'block' : 'none';
   document.getElementById('case-closing-row').style.display = isClosing ? 'block' : 'none';
+
+  const posture = document.getElementById('case-posture').value;
+  const isSettled = posture.startsWith('Settled');
+  document.getElementById('case-stip-section').style.display = isSettled ? 'block' : 'none';
+
+  const stipType = isSettled ? document.getElementById('case-stip-type').value : '';
+  document.getElementById('case-stip-payment-fields').style.display = stipType === 'Payment' ? 'block' : 'none';
+  document.getElementById('case-stip-moveout-fields').style.display = stipType === 'Move Out' ? 'block' : 'none';
+  document.getElementById('case-stip-prob-fields').style.display  = stipType === 'Probationary' ? 'block' : 'none';
 }
 
 function clearCaseModal() {
@@ -2136,9 +2247,13 @@ function clearCaseModal() {
    'case-ls-url','case-ny-url','case-ec-url'].forEach(id => {
     document.getElementById(id).value = '';
   });
-  ['case-payment-date','case-vacate-date','case-eviction-date','case-scheduled-eviction-date','case-nto-date'].forEach(id => {
+  ['case-payment-date','case-vacate-date','case-eviction-date','case-scheduled-eviction-date','case-nto-date',
+   'case-arrears-through-date','case-warrant-stay-date','case-stip-eed','case-probationary-through-date'].forEach(id => {
     document.getElementById(id).value = '';
   });
+  document.getElementById('case-arrears-amount').value = '';
+  document.getElementById('case-posture').value = '';
+  document.getElementById('case-stip-type').value = '';
   document.getElementById('case-type').value = 'NP';
   document.getElementById('case-status').value = 'Active';
   document.getElementById('case-noe-served').checked = false;
@@ -2185,6 +2300,13 @@ function openEditCaseModal(id) {
   document.getElementById('case-ls-url').value = c.legalserver_url || '';
   document.getElementById('case-ny-url').value = c.nyscef_url || '';
   document.getElementById('case-ec-url').value = c.ecourts_url || '';
+  document.getElementById('case-posture').value = c.procedural_posture || '';
+  document.getElementById('case-stip-type').value = c.stip_type || '';
+  document.getElementById('case-arrears-amount').value = c.arrears_amount != null ? c.arrears_amount : '';
+  document.getElementById('case-arrears-through-date').value = c.arrears_through_date || '';
+  document.getElementById('case-warrant-stay-date').value = c.warrant_stay_date || '';
+  document.getElementById('case-stip-eed').value = c.stip_eed || '';
+  document.getElementById('case-probationary-through-date').value = c.probationary_through_date || '';
   document.getElementById('case-btn-delete').style.display = 'inline-block';
   document.getElementById('case-btn-save').textContent = 'Update Case';
   updateCaseFields();
@@ -2206,6 +2328,13 @@ async function handleCaseSave() {
     resolution: document.getElementById('case-resolution').value.trim() || null,
     court_notes: document.getElementById('case-court-notes').value.trim() || null,
     stip_notes: document.getElementById('case-stip-notes').value.trim() || null,
+    procedural_posture: document.getElementById('case-posture').value || null,
+    stip_type: document.getElementById('case-stip-type').value || null,
+    arrears_amount: document.getElementById('case-arrears-amount').value ? parseFloat(document.getElementById('case-arrears-amount').value) : null,
+    arrears_through_date: document.getElementById('case-arrears-through-date').value || null,
+    warrant_stay_date: document.getElementById('case-warrant-stay-date').value || null,
+    stip_eed: document.getElementById('case-stip-eed').value || null,
+    probationary_through_date: document.getElementById('case-probationary-through-date').value || null,
     payment_date: document.getElementById('case-payment-date').value || null,
     vacate_date: document.getElementById('case-vacate-date').value || null,
     earliest_eviction_date: document.getElementById('case-eviction-date').value || null,
