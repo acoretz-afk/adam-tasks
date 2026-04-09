@@ -718,15 +718,9 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
       </div>
 
       <div id="case-stip-moveout-fields" style="display:none">
-        <div class="two-fields">
-          <div class="field-row">
-            <label class="field-label">Warrant Stay Date</label>
-            <input id="case-warrant-stay-date" type="date" class="field-input">
-          </div>
-          <div class="field-row">
-            <label class="field-label">EED (Stip)</label>
-            <input id="case-stip-eed" type="date" class="field-input">
-          </div>
+        <div class="field-row">
+          <label class="field-label">EED (Stip)</label>
+          <input id="case-stip-eed" type="date" class="field-input">
         </div>
         <div class="field-row">
           <label class="field-label">Vacate Date</label>
@@ -1540,7 +1534,6 @@ function buildCaseInfoRows(c) {
         sp.push(`Pay ${fmtDate(c.payment_date)} <span class="${cls}">(${lbl})</span>`);
       }
     } else if (c.stip_type === 'Move Out') {
-      if (c.warrant_stay_date) sp.push(`Stay ${fmtDate(c.warrant_stay_date)}`);
       if (c.stip_eed) sp.push(`EED Stip ${fmtDate(c.stip_eed)}`);
       if (c.vacate_date) {
         const d = daysUntil(c.vacate_date);
@@ -2224,7 +2217,7 @@ function clearCaseModal() {
     document.getElementById(id).value = '';
   });
   ['case-payment-date','case-vacate-date','case-eviction-date','case-scheduled-eviction-date','case-nto-date',
-   'case-arrears-through-date','case-warrant-stay-date','case-stip-eed','case-probationary-through-date'].forEach(id => {
+   'case-arrears-through-date','case-stip-eed','case-probationary-through-date'].forEach(id => {
     document.getElementById(id).value = '';
   });
   document.getElementById('case-arrears-amount').value = '';
@@ -2280,7 +2273,6 @@ function openEditCaseModal(id) {
   document.getElementById('case-stip-type').value = c.stip_type || '';
   document.getElementById('case-arrears-amount').value = c.arrears_amount != null ? c.arrears_amount : '';
   document.getElementById('case-arrears-through-date').value = c.arrears_through_date || '';
-  document.getElementById('case-warrant-stay-date').value = c.warrant_stay_date || '';
   document.getElementById('case-stip-eed').value = c.stip_eed || '';
   document.getElementById('case-probationary-through-date').value = c.probationary_through_date || '';
   document.getElementById('case-btn-delete').style.display = 'inline-block';
@@ -2308,7 +2300,6 @@ async function handleCaseSave() {
     stip_type: document.getElementById('case-stip-type').value || null,
     arrears_amount: document.getElementById('case-arrears-amount').value ? parseFloat(document.getElementById('case-arrears-amount').value) : null,
     arrears_through_date: document.getElementById('case-arrears-through-date').value || null,
-    warrant_stay_date: document.getElementById('case-warrant-stay-date').value || null,
     stip_eed: document.getElementById('case-stip-eed').value || null,
     probationary_through_date: document.getElementById('case-probationary-through-date').value || null,
     payment_date: document.getElementById('case-payment-date').value || null,
