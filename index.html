@@ -284,6 +284,13 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .case-noe-badge { font-size:.68rem; font-weight:700; color:#f87171; background:rgba(224,92,92,.12); padding:2px 6px; border-radius:5px; }
 .posture-badge { display:inline-flex; align-items:center; font-size:.7rem; font-weight:600; padding:2px 8px; border-radius:6px; background:rgba(167,139,250,.15); color:#a78bfa; }
 .case-stip-summary { font-size:.75rem; color:var(--text2); margin-top:4px; line-height:1.4; }
+/* ── CASE INFO ROWS (Option A layout) ── */
+.case-info-rows { display:flex; flex-direction:column; gap:4px; margin-top:8px; padding-top:8px; border-top:1px solid var(--border); }
+.case-info-row { display:flex; align-items:baseline; gap:8px; font-size:.78rem; line-height:1.5; }
+.case-info-label { font-size:.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text3); width:56px; flex-shrink:0; }
+.case-info-value { color:var(--text2); flex:1; }
+.civ-warn { color:var(--yellow); }
+.civ-urgent { color:var(--red); }
 .case-links { display:flex; gap:6px; margin-top:8px; }
 .case-link-btn { display:inline-flex; align-items:center; gap:4px; font-size:.72rem; font-weight:700; padding:3px 9px; border-radius:6px; text-decoration:none; transition:filter .15s; border:1px solid; }
 .case-link-btn:hover { filter:brightness(1.25); }
@@ -1204,7 +1211,6 @@ function renderCaseDetail() {
     headerHtml += `<span class="case-type-badge case-type-${caseRecord.case_type}">${caseRecord.case_type}</span>
       <span class="case-status-pill ${statusClass}">${escHtml(caseRecord.status)}</span>`;
     if (caseRecord.index_number) headerHtml += `<span class="case-index">${escHtml(caseRecord.index_number)}</span>`;
-    if (caseRecord.procedural_posture) headerHtml += `<span class="posture-badge">${escHtml(caseRecord.procedural_posture)}</span>`;
   }
   headerHtml += `</div>`;
 
@@ -1214,60 +1220,7 @@ function renderCaseDetail() {
     if (caseRecord.opa) partyParts.push(`OPA: ${escHtml(caseRecord.opa)}`);
     if (partyParts.length) headerHtml += `<div class="case-party-row">${partyParts.join(' &nbsp;·&nbsp; ')}</div>`;
 
-    const chips = [];
-    if (caseRecord.part) chips.push(`<span class="case-date-chip case-date-ok">Part ${escHtml(caseRecord.part)}</span>`);
-    if (caseRecord.nto_date) {
-      const d = daysUntil(caseRecord.nto_date);
-      const cls = d < 0 ? 'case-date-ok' : d <= 3 ? 'case-date-urgent' : d <= 7 ? 'case-date-warn' : 'case-date-ok';
-      const lbl = d < 0 ? `${Math.abs(d)}d ago` : d === 0 ? 'Today' : d === 1 ? 'Tomorrow' : `${d}d`;
-      chips.push(`<span class="case-date-chip ${cls}">🏛️ NTO ${fmtDate(caseRecord.nto_date)} · ${lbl}</span>`);
-    }
-    if (caseRecord.payment_date) {
-      const d = daysUntil(caseRecord.payment_date);
-      const cls = d < 0 ? 'case-date-urgent' : d <= 7 ? 'case-date-warn' : 'case-date-ok';
-      const lbl = d < 0 ? `${Math.abs(d)}d overdue` : `${d}d`;
-      chips.push(`<span class="case-date-chip ${cls}">💰 Pay ${fmtDate(caseRecord.payment_date)} · ${lbl}</span>`);
-    }
-    if (caseRecord.vacate_date) {
-      const d = daysUntil(caseRecord.vacate_date);
-      const cls = d < 0 ? 'case-date-urgent' : d <= 14 ? 'case-date-warn' : 'case-date-ok';
-      chips.push(`<span class="case-date-chip ${cls}">📦 Vacate ${fmtDate(caseRecord.vacate_date)} · ${d < 0 ? `${Math.abs(d)}d ago` : `${d}d`}</span>`);
-    }
-    if (caseRecord.earliest_eviction_date) {
-      const d = daysUntil(caseRecord.earliest_eviction_date);
-      const cls = d < 0 ? 'case-date-urgent' : d <= 14 ? 'case-date-warn' : 'case-date-ok';
-      chips.push(`<span class="case-date-chip ${cls}">⚠️ EED (NOE) ${fmtDate(caseRecord.earliest_eviction_date)} · ${d < 0 ? `${Math.abs(d)}d ago` : `${d}d`}</span>`);
-    }
-    if (caseRecord.stip_eed) {
-      const d = daysUntil(caseRecord.stip_eed);
-      const cls = d < 0 ? 'case-date-urgent' : d <= 14 ? 'case-date-warn' : 'case-date-ok';
-      chips.push(`<span class="case-date-chip ${cls}">📅 EED (Stip) ${fmtDate(caseRecord.stip_eed)} · ${d < 0 ? `${Math.abs(d)}d ago` : `${d}d`}</span>`);
-    }
-    if (caseRecord.warrant_stay_date) {
-      const d = daysUntil(caseRecord.warrant_stay_date);
-      const cls = d < 0 ? 'case-date-ok' : d <= 14 ? 'case-date-warn' : 'case-date-ok';
-      chips.push(`<span class="case-date-chip ${cls}">⏸️ Stay ${fmtDate(caseRecord.warrant_stay_date)}</span>`);
-    }
-    if (caseRecord.probationary_through_date) {
-      const d = daysUntil(caseRecord.probationary_through_date);
-      const cls = d < 0 ? 'case-date-ok' : d <= 30 ? 'case-date-warn' : 'case-date-ok';
-      chips.push(`<span class="case-date-chip ${cls}">📋 Prob. Through ${fmtDate(caseRecord.probationary_through_date)}</span>`);
-    }
-    if (chips.length) headerHtml += `<div class="case-meta-row" style="margin-top:8px">${chips.join('')}</div>`;
-
-    // Stip summary line
-    if (caseRecord.stip_type) {
-      const stipParts = [`${escHtml(caseRecord.stip_type)} Stip`];
-      if (caseRecord.arrears_amount != null) stipParts.push(`$${Number(caseRecord.arrears_amount).toLocaleString()} arrears`);
-      if (caseRecord.arrears_through_date) stipParts.push(`through ${fmtDate(caseRecord.arrears_through_date)}`);
-      headerHtml += `<div class="case-stip-summary">📋 ${stipParts.join(' · ')}${caseRecord.stip_notes ? ' — ' + escHtml(caseRecord.stip_notes) : ''}</div>`;
-    } else if (caseRecord.stip_notes) {
-      headerHtml += `<div class="case-stip-summary">📋 ${escHtml(caseRecord.stip_notes)}</div>`;
-    }
-
-    // Notes
-    if (caseRecord.court_notes) headerHtml += `<div class="case-notes-text" style="margin-top:6px">🏛️ ${escHtml(caseRecord.court_notes)}</div>`;
-    if (caseRecord.resolution) headerHtml += `<div class="case-notes-text" style="color:var(--text2)">→ ${escHtml(caseRecord.resolution)}</div>`;
+    headerHtml += buildCaseInfoRows(caseRecord);
 
     const linkBtns = [];
     if (caseRecord.legalserver_url) linkBtns.push(`<a class="case-link-btn case-link-ls" href="${escHtml(caseRecord.legalserver_url)}" target="_blank" rel="noopener">⚖️ LegalServer</a>`);
@@ -1552,87 +1505,114 @@ function setCaseFilter(f) {
   renderCurrentTab();
 }
 
+function buildCaseInfoRows(c) {
+  const rows = [];
+
+  // COURT row — Part, NTO, court notes
+  const courtParts = [];
+  if (c.part) courtParts.push(`Part ${escHtml(c.part)}`);
+  if (c.nto_date) {
+    const d = daysUntil(c.nto_date);
+    const lbl = d < 0 ? `${Math.abs(d)}d ago` : d === 0 ? 'Today' : d === 1 ? 'Tomorrow' : `${d}d`;
+    const cls = d >= 0 && d <= 3 ? 'civ-urgent' : d >= 0 && d <= 7 ? 'civ-warn' : '';
+    courtParts.push(`NTO ${fmtDate(c.nto_date)} <span class="${cls}">(${lbl})</span>`);
+  }
+  if (c.court_notes) courtParts.push(`<span style="color:var(--text3)">${escHtml(c.court_notes)}</span>`);
+  if (courtParts.length) rows.push({ label: 'Court', value: courtParts.join(' &nbsp;·&nbsp; ') });
+
+  // POSTURE row
+  if (c.procedural_posture || c.resolution) {
+    let val = c.procedural_posture ? escHtml(c.procedural_posture) : '';
+    if (c.resolution) val += (val ? ' <span style="color:var(--text3)">→ ' : '<span style="color:var(--text3)">→ ') + escHtml(c.resolution) + '</span>';
+    rows.push({ label: 'Posture', value: val });
+  }
+
+  // STIP row
+  if (c.stip_type) {
+    const sp = [`${escHtml(c.stip_type)} Stip`];
+    if (c.stip_type === 'Payment') {
+      if (c.arrears_amount != null) sp.push(`$${Number(c.arrears_amount).toLocaleString()}`);
+      if (c.arrears_through_date) sp.push(`thru ${fmtDate(c.arrears_through_date)}`);
+      if (c.payment_date) {
+        const d = daysUntil(c.payment_date);
+        const cls = d < 0 ? 'civ-urgent' : d <= 7 ? 'civ-warn' : '';
+        const lbl = d < 0 ? `${Math.abs(d)}d overdue` : d === 0 ? 'Today' : `${d}d`;
+        sp.push(`Pay ${fmtDate(c.payment_date)} <span class="${cls}">(${lbl})</span>`);
+      }
+    } else if (c.stip_type === 'Move Out') {
+      if (c.warrant_stay_date) sp.push(`Stay ${fmtDate(c.warrant_stay_date)}`);
+      if (c.stip_eed) sp.push(`EED Stip ${fmtDate(c.stip_eed)}`);
+      if (c.vacate_date) {
+        const d = daysUntil(c.vacate_date);
+        const cls = d < 0 ? 'civ-urgent' : d <= 14 ? 'civ-warn' : '';
+        const lbl = d < 0 ? `${Math.abs(d)}d ago` : d === 0 ? 'Today' : `${d}d`;
+        sp.push(`Vacate ${fmtDate(c.vacate_date)} <span class="${cls}">(${lbl})</span>`);
+      }
+    } else if (c.stip_type === 'Probationary') {
+      if (c.probationary_through_date) {
+        const d = daysUntil(c.probationary_through_date);
+        const cls = d < 0 ? 'civ-urgent' : d <= 30 ? 'civ-warn' : '';
+        const lbl = d < 0 ? `${Math.abs(d)}d ago` : `${d}d`;
+        sp.push(`Through ${fmtDate(c.probationary_through_date)} <span class="${cls}">(${lbl})</span>`);
+      }
+    }
+    if (c.stip_notes) sp.push(`<span style="color:var(--text3)">${escHtml(c.stip_notes)}</span>`);
+    rows.push({ label: 'Stip', value: sp.join(' &nbsp;·&nbsp; ') });
+  } else {
+    // Legacy: dates without stip_type set
+    const lp = [];
+    if (c.payment_date) {
+      const d = daysUntil(c.payment_date);
+      const cls = d < 0 ? 'civ-urgent' : d <= 7 ? 'civ-warn' : '';
+      const lbl = d < 0 ? `${Math.abs(d)}d overdue` : d === 0 ? 'Today' : `${d}d`;
+      lp.push(`Pay ${fmtDate(c.payment_date)} <span class="${cls}">(${lbl})</span>`);
+    }
+    if (c.vacate_date) {
+      const d = daysUntil(c.vacate_date);
+      const cls = d < 0 ? 'civ-urgent' : d <= 14 ? 'civ-warn' : '';
+      const lbl = d < 0 ? `${Math.abs(d)}d ago` : d === 0 ? 'Today' : `${d}d`;
+      lp.push(`Vacate ${fmtDate(c.vacate_date)} <span class="${cls}">(${lbl})</span>`);
+    }
+    if (c.stip_notes) lp.push(`<span style="color:var(--text3)">${escHtml(c.stip_notes)}</span>`);
+    if (lp.length) rows.push({ label: 'Stip', value: lp.join(' &nbsp;·&nbsp; ') });
+  }
+
+  // EVICTION row
+  const ep = [];
+  if (c.noe_served) ep.push(`<span style="color:#f87171;font-weight:600">NOE Served</span>`);
+  if (c.earliest_eviction_date) {
+    const d = daysUntil(c.earliest_eviction_date);
+    const cls = d < 0 ? 'civ-urgent' : d <= 14 ? 'civ-warn' : '';
+    const lbl = d < 0 ? `${Math.abs(d)}d ago` : d === 0 ? 'Today' : `${d}d`;
+    ep.push(`EED ${fmtDate(c.earliest_eviction_date)} <span class="${cls}">(${lbl})</span>`);
+  }
+  if (c.scheduled_eviction_date) ep.push(`Scheduled ${fmtDate(c.scheduled_eviction_date)}`);
+  if (ep.length) rows.push({ label: 'Eviction', value: ep.join(' &nbsp;·&nbsp; ') });
+
+  // CLOSING row
+  if (c.status !== 'Active') {
+    let cv;
+    if (c.closing_letter_mailed) cv = `<span style="color:var(--green)">✓ Letter mailed</span>`;
+    else if (c.closing_letter_drafted) cv = `<span class="civ-warn">Letter drafted</span>`;
+    else cv = `<span class="civ-urgent">Letter needed</span>`;
+    rows.push({ label: 'Closing', value: cv });
+  }
+
+  if (!rows.length) return '';
+  return `<div class="case-info-rows">${rows.map(r =>
+    `<div class="case-info-row"><span class="case-info-label">${r.label}</span><span class="case-info-value">${r.value}</span></div>`
+  ).join('')}</div>`;
+}
+
 function renderCaseCard(c) {
   const typeBadge = `<span class="case-type-badge case-type-${c.case_type}">${c.case_type}</span>`;
-
   const statusClass = c.status === 'Active' ? 'status-pill-active' : c.status === 'Ready to Close' ? 'status-pill-ready' : 'status-pill-closed';
   const statusPill = caseFilter === 'all' ? `<span class="case-status-pill ${statusClass}">${escHtml(c.status)}</span>` : '';
-
-  const postureBadge = c.procedural_posture ? `<span class="posture-badge">${escHtml(c.procedural_posture)}</span>` : '';
 
   const partyParts = [];
   if (c.landlord) partyParts.push(`Petitioner: ${escHtml(c.landlord)}`);
   if (c.opa) partyParts.push(`OPA: ${escHtml(c.opa)}`);
   const partyRow = partyParts.length ? `<div class="case-party-row">${partyParts.join(' &nbsp;·&nbsp; ')}</div>` : '';
-
-  const chips = [];
-  if (c.part) chips.push(`<span class="case-date-chip case-date-ok">Part ${escHtml(c.part)}</span>`);
-
-  // NTO date
-  if (c.nto_date) {
-    const d = daysUntil(c.nto_date);
-    const cls = d < 0 ? 'case-date-ok' : d <= 3 ? 'case-date-urgent' : d <= 7 ? 'case-date-warn' : 'case-date-ok';
-    const lbl = d < 0 ? `${Math.abs(d)}d ago` : d === 0 ? 'Today' : d === 1 ? 'Tomorrow' : `${d}d`;
-    chips.push(`<span class="case-date-chip ${cls}">🏛️ NTO ${fmtDate(c.nto_date)} · ${lbl}</span>`);
-  }
-
-  // Payment date
-  if (c.payment_date) {
-    const d = daysUntil(c.payment_date);
-    const cls = d < 0 ? 'case-date-urgent' : d <= 7 ? 'case-date-warn' : 'case-date-ok';
-    const lbl = d < 0 ? `${Math.abs(d)}d overdue` : d === 0 ? 'Today' : `${d}d`;
-    chips.push(`<span class="case-date-chip ${cls}">💰 Pay ${fmtDate(c.payment_date)} · ${lbl}</span>`);
-  }
-
-  // Vacate date
-  if (c.vacate_date) {
-    const d = daysUntil(c.vacate_date);
-    const cls = d < 0 ? 'case-date-urgent' : d <= 14 ? 'case-date-warn' : 'case-date-ok';
-    const lbl = d < 0 ? `${Math.abs(d)}d ago` : d === 0 ? 'Today' : `${d}d`;
-    chips.push(`<span class="case-date-chip ${cls}">📦 Vacate ${fmtDate(c.vacate_date)} · ${lbl}</span>`);
-  }
-
-  // Eviction date
-  if (c.earliest_eviction_date) {
-    const d = daysUntil(c.earliest_eviction_date);
-    const cls = d < 0 ? 'case-date-urgent' : d <= 14 ? 'case-date-warn' : 'case-date-ok';
-    const lbl = d < 0 ? `${Math.abs(d)}d ago` : d === 0 ? 'Today' : `${d}d`;
-    chips.push(`<span class="case-date-chip ${cls}">⚠️ EED (NOE) ${fmtDate(c.earliest_eviction_date)} · ${lbl}</span>`);
-  }
-
-  // Stip-specific dates
-  if (c.stip_eed) {
-    const d = daysUntil(c.stip_eed);
-    const cls = d < 0 ? 'case-date-urgent' : d <= 14 ? 'case-date-warn' : 'case-date-ok';
-    const lbl = d < 0 ? `${Math.abs(d)}d ago` : d === 0 ? 'Today' : `${d}d`;
-    chips.push(`<span class="case-date-chip ${cls}">📅 EED (Stip) ${fmtDate(c.stip_eed)} · ${lbl}</span>`);
-  }
-  if (c.warrant_stay_date) {
-    const d = daysUntil(c.warrant_stay_date);
-    const cls = d < 0 ? 'case-date-ok' : d <= 14 ? 'case-date-warn' : 'case-date-ok';
-    chips.push(`<span class="case-date-chip ${cls}">⏸️ Stay ${fmtDate(c.warrant_stay_date)}</span>`);
-  }
-  if (c.probationary_through_date) {
-    const d = daysUntil(c.probationary_through_date);
-    const cls = d < 0 ? 'case-date-ok' : d <= 30 ? 'case-date-warn' : 'case-date-ok';
-    chips.push(`<span class="case-date-chip ${cls}">📋 Prob. Through ${fmtDate(c.probationary_through_date)}</span>`);
-  }
-
-  if (c.noe_served) chips.push(`<span class="case-noe-badge">NOE Served</span>`);
-
-  // Closing letter status
-  if (c.status !== 'Active') {
-    if (c.closing_letter_mailed) chips.push(`<span class="case-date-chip case-date-ok">✉️ Letter mailed</span>`);
-    else if (c.closing_letter_drafted) chips.push(`<span class="case-date-chip case-date-warn">📝 Letter drafted</span>`);
-    else chips.push(`<span class="case-date-chip case-date-urgent">📝 Letter needed</span>`);
-  }
-
-  const metaRow = chips.length ? `<div class="case-meta-row">${chips.join('')}</div>` : '';
-
-  const postureHtml = postureBadge ? `<div style="margin-top:5px">${postureBadge}${c.stip_type ? `&nbsp;<span style="font-size:.72rem;color:var(--text2)">${escHtml(c.stip_type)} Stip</span>` : ''}${c.arrears_amount != null && c.stip_type === 'Payment' ? `&nbsp;<span style="font-size:.72rem;color:var(--text2)">· $${Number(c.arrears_amount).toLocaleString()}</span>` : ''}</div>` : '';
-  const courtNote = c.court_notes ? `<div class="case-notes-text">🏛️ ${escHtml(c.court_notes)}</div>` : '';
-  const stipNote = c.stip_notes ? `<div class="case-notes-text">📋 ${escHtml(c.stip_notes)}</div>` : '';
-  const resolution = c.resolution ? `<div class="case-notes-text" style="color:var(--text2)">→ ${escHtml(c.resolution)}</div>` : '';
 
   const linkBtns = [];
   if (c.legalserver_url) linkBtns.push(`<a class="case-link-btn case-link-ls" href="${escHtml(c.legalserver_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">⚖️ LegalServer</a>`);
@@ -1649,11 +1629,7 @@ function renderCaseCard(c) {
       ${statusPill}
     </div>
     ${partyRow}
-    ${postureHtml}
-    ${metaRow}
-    ${courtNote}
-    ${stipNote}
-    ${resolution}
+    ${buildCaseInfoRows(c)}
     ${linksHtml}
   </div>`;
 }
