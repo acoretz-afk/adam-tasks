@@ -287,7 +287,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 /* ── CASE INFO ROWS (Option A layout) ── */
 .case-info-rows { display:flex; flex-direction:column; gap:4px; margin-top:8px; padding-top:8px; border-top:1px solid var(--border); }
 .case-info-row { display:flex; align-items:baseline; gap:8px; font-size:.78rem; line-height:1.5; }
-.case-info-label { font-size:.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text3); width:56px; flex-shrink:0; }
+.case-info-label { font-size:.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text3); width:68px; flex-shrink:0; }
 .case-info-value { color:var(--text2); flex:1; }
 .civ-warn { color:var(--yellow); }
 .civ-urgent { color:var(--red); }
@@ -1557,7 +1557,7 @@ function buildCaseInfoRows(c) {
       }
     }
     if (c.stip_notes) sp.push(`<span style="color:var(--text3)">${escHtml(c.stip_notes)}</span>`);
-    rows.push({ label: 'Stip', value: sp.join(' &nbsp;·&nbsp; ') });
+    rows.push({ label: 'Settlement', value: sp.join(' &nbsp;·&nbsp; ') });
   } else {
     // Legacy: dates without stip_type set
     const lp = [];
@@ -1574,7 +1574,7 @@ function buildCaseInfoRows(c) {
       lp.push(`Vacate ${fmtDate(c.vacate_date)} <span class="${cls}">(${lbl})</span>`);
     }
     if (c.stip_notes) lp.push(`<span style="color:var(--text3)">${escHtml(c.stip_notes)}</span>`);
-    if (lp.length) rows.push({ label: 'Stip', value: lp.join(' &nbsp;·&nbsp; ') });
+    if (lp.length) rows.push({ label: 'Settlement', value: lp.join(' &nbsp;·&nbsp; ') });
   }
 
   // EVICTION row
