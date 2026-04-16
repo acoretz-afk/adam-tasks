@@ -1512,15 +1512,36 @@ function renderCasesTab(el) {
     <button class="case-filter-btn${caseFilter==='ready'?' active':''}" onclick="setCaseFilter('ready')">Ready to Close (${ready.length})</button>
     <button class="case-filter-btn${caseFilter==='closed'?' active':''}" onclick="setCaseFilter('closed')">Closed (${closed.length})</button>
     <button class="case-filter-btn${caseFilter==='all'?' active':''}" onclick="setCaseFilter('all')">All (${cases.length})</button>
-    <input type="text" class="field-input" placeholder="Search client..." value="${escHtml(caseSearch)}"
-      oninput="caseSearch=this.value; renderCurrentTab()" style="margin-left:auto;width:180px;padding:7px 12px;font-size:.85rem">
+    <input id="case-search-input" type="text" class="field-input" placeholder="Search client..." value="${escHtml(caseSearch)}"
+      oninput="filterCaseCards(this.value)" style="margin-left:auto;width:180px;padding:7px 12px;font-size:.85rem">
   </div>`;
 
   const cardsHtml = visible.length
     ? visible.map(renderCaseCard).join('')
     : `<div class="empty-state"><div class="es-icon">📁</div><p>No cases found</p></div>`;
 
-  el.innerHTML = filterBar + cardsHtml;
+  el.innerHTML = filterBar + `<div id="case-cards-list">${cardsHtml}</div>`;
+}
+
+function filterCaseCards(q) {
+  caseSearch = q;
+  const container = document.getElementById('case-cards-list');
+  if (!container) return;
+  const active = cases.filter(c => c.status === 'Active');
+  const ready  = cases.filter(c => c.status === 'Ready to Close');
+  const closed = cases.filter(c => c.status === 'Closed');
+  let visible;
+  if (caseFilter === 'active') visible = active;
+  else if (caseFilter === 'ready') visible = ready;
+  else if (caseFilter === 'closed') visible = closed;
+  else visible = [...active, ...ready, ...closed];
+  if (q) {
+    const ql = q.toLowerCase();
+    visible = visible.filter(c => c.client && c.client.toLowerCase().includes(ql));
+  }
+  container.innerHTML = visible.length
+    ? visible.map(renderCaseCard).join('')
+    : `<div class="empty-state"><div class="es-icon">📁</div><p>No cases found</p></div>`;
 }
 
 function setCaseFilter(f) {
