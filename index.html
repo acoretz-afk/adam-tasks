@@ -2408,11 +2408,19 @@ function updateFilingFields() {
   document.getElementById("deadline-label").textContent = isFiling ? "Filing Deadline" : "Deadline";
 }
 
+const TASK_ONLY_TYPES = ["Client Call","Client Email","Agency/Nonprofit Call","Internal/Admin","OPA Communication","Other"];
+const FILING_ONLY_TYPES = ["Answer","Motion","Stipulation of Settlement","HP Petition","OSC","Other Filing"];
+
+function setTypeOptions(types, defaultVal) {
+  const sel = document.getElementById("f-type");
+  sel.innerHTML = types.map(t => `<option${t === defaultVal ? ' selected' : ''}>${t}</option>`).join('');
+}
+
 function openNewModal() {
   editingId = null;
   document.getElementById("modal-title").textContent = "New Task";
   document.getElementById("f-title").value = "";
-  document.getElementById("f-type").value = "Client Call";
+  setTypeOptions(TASK_ONLY_TYPES, "Client Call");
   document.getElementById("f-priority").value = "Normal";
   populateClientSelect("f-client", "");
   document.getElementById("f-deadline").value = "";
@@ -2435,9 +2443,10 @@ function openEditModal(id) {
   const t = tasks.find(x => x.id === id);
   if (!t) return;
   editingId = id;
-  document.getElementById("modal-title").textContent = "Edit Task";
+  const isFiling = FILING_TYPES.has(t.type);
+  document.getElementById("modal-title").textContent = isFiling ? "Edit Filing" : "Edit Task";
   document.getElementById("f-title").value = t.title || "";
-  document.getElementById("f-type").value = t.type || "Client Call";
+  setTypeOptions(isFiling ? FILING_ONLY_TYPES : TASK_ONLY_TYPES, t.type || (isFiling ? "Motion" : "Client Call"));
   document.getElementById("f-priority").value = t.priority || "Normal";
   populateClientSelect("f-client", t.client || "");
   document.getElementById("f-deadline").value = t.deadline || "";
@@ -2446,7 +2455,7 @@ function openEditModal(id) {
   document.getElementById("f-notes").value = t.notes || "";
   document.getElementById("f-status").value = t.status || "To Do";
   document.getElementById("btn-delete").style.display = "inline-block";
-  document.getElementById("btn-save").textContent = "Update Task";
+  document.getElementById("btn-save").textContent = isFiling ? "Update Filing" : "Update Task";
   updateFilingFields();
   renderSubtaskEditor(parseSubtasks(t.subtasks));
   document.getElementById("modal-overlay").style.display = "flex";
@@ -2590,9 +2599,23 @@ document.querySelectorAll(".tab").forEach(tab => {
 });
 
 function openNewFilingModal() {
-  openNewModal();
-  document.getElementById("f-type").value = "Motion";
+  editingId = null;
+  document.getElementById("modal-title").textContent = "New Filing";
+  document.getElementById("f-title").value = "";
+  setTypeOptions(FILING_ONLY_TYPES, "Motion");
+  document.getElementById("f-priority").value = "Normal";
+  populateClientSelect("f-client", "");
+  document.getElementById("f-deadline").value = "";
+  document.getElementById("f-draft-deadline").value = "";
+  document.getElementById("f-hard-deadline").checked = false;
+  document.getElementById("f-notes").value = "";
+  document.getElementById("f-status").value = "To Do";
+  document.getElementById("btn-delete").style.display = "none";
+  document.getElementById("btn-save").textContent = "Save Filing";
   updateFilingFields();
+  renderSubtaskEditor([]);
+  document.getElementById("modal-overlay").style.display = "flex";
+  document.getElementById("f-title").focus();
 }
 
 document.getElementById("f-type").addEventListener("change", updateFilingFields);
