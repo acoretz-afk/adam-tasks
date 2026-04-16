@@ -901,6 +901,7 @@ let editingCaseId = null;
 let dragSrcId = null;
 let hideDone = true;
 let caseFilter = "active";
+let caseSearch = "";
 let calYear = new Date().getFullYear();
 let calMonth = new Date().getMonth();
 let caseDetailClient = null;
@@ -1485,16 +1486,23 @@ function renderCasesTab(el) {
   else if (caseFilter === 'closed') visible = closed;
   else visible = [...active, ...ready, ...closed];
 
+  if (caseSearch) {
+    const q = caseSearch.toLowerCase();
+    visible = visible.filter(c => c.client && c.client.toLowerCase().includes(q));
+  }
+
   const filterBar = `<div class="case-filter-bar">
     <button class="case-filter-btn${caseFilter==='active'?' active':''}" onclick="setCaseFilter('active')">Active (${active.length})</button>
     <button class="case-filter-btn${caseFilter==='ready'?' active':''}" onclick="setCaseFilter('ready')">Ready to Close (${ready.length})</button>
     <button class="case-filter-btn${caseFilter==='closed'?' active':''}" onclick="setCaseFilter('closed')">Closed (${closed.length})</button>
     <button class="case-filter-btn${caseFilter==='all'?' active':''}" onclick="setCaseFilter('all')">All (${cases.length})</button>
+    <input type="text" class="field-input" placeholder="Search client..." value="${escHtml(caseSearch)}"
+      oninput="caseSearch=this.value; renderCurrentTab()" style="margin-left:auto;width:180px;padding:7px 12px;font-size:.85rem">
   </div>`;
 
   const cardsHtml = visible.length
     ? visible.map(renderCaseCard).join('')
-    : `<div class="empty-state"><div class="es-icon">📁</div><p>No cases here</p></div>`;
+    : `<div class="empty-state"><div class="es-icon">📁</div><p>No cases found</p></div>`;
 
   el.innerHTML = filterBar + cardsHtml;
 }
