@@ -1687,7 +1687,7 @@ function renderCalendarTab(el) {
     const isToday = dateStr === todayStr;
     const dayEvents = dateStr ? (events[dateStr] || []) : [];
     const chipsHtml = dayEvents.map(ev => {
-      const clickAttr = ev.id ? `onclick="openEditCaseModal('${ev.id}')"` : '';
+      const clickAttr = ev.id ? `onclick="openCaseDetailForCase('${ev.id}')"` : '';
       return `<div class="cal-chip cal-chip-${ev.type}" ${clickAttr}>${escHtml(ev.label)}</div>`;
     }).join('');
     return `<div class="cal-day${!cell.thisMonth?' other-month':''}${isToday?' today':''}">
