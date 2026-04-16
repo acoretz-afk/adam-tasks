@@ -1228,6 +1228,7 @@ function renderCaseDetail() {
     : '';
   headerHtml += `<div class="case-detail-actions">
     ${caseRecord ? `<button class="btn-edit-case" onclick="closeCaseDetail(); openEditCaseModal('${caseRecord.id}')">✏️ Edit</button>` : ''}
+    ${caseRecord ? `<button class="btn-edit-case" onclick="copyCaption('${caseRecord.id}')">📋 Caption</button>` : ''}
     ${calBtn}
     <button class="btn-cancel" style="padding:7px 16px;font-size:.85rem" onclick="closeCaseDetail()">Close</button>
   </div>`;
@@ -1305,6 +1306,16 @@ function openNtoInOutlook(caseId) {
   });
 
   window.open('https://outlook.office.com/calendar/action/compose?' + params.toString(), '_blank');
+}
+
+function copyCaption(caseId) {
+  const c = cases.find(x => x.id === caseId);
+  if (!c) return;
+  const petitioner = c.landlord || 'Unknown Petitioner';
+  const respondent = c.client || 'Unknown Respondent';
+  const index = c.index_number ? ` (${c.index_number})` : '';
+  const caption = `${petitioner} v. ${respondent}${index}`;
+  navigator.clipboard.writeText(caption).then(() => showToast('Caption copied'));
 }
 
 // ═══════════════════════════════════════════════════
@@ -1603,6 +1614,7 @@ function renderCaseCard(c) {
   if (c.nyscef_url) linkBtns.push(`<a class="case-link-btn case-link-ny" href="${escHtml(c.nyscef_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">📄 NYSCEF</a>`);
   if (c.ecourts_url) linkBtns.push(`<a class="case-link-btn case-link-ec" href="${escHtml(c.ecourts_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🏛️ eCourts</a>`);
   if (c.nto_date) linkBtns.push(`<button class="case-link-btn case-link-cal" onclick="event.stopPropagation(); openNtoInOutlook('${c.id}')">📅 Add NTO to Outlook</button>`);
+  linkBtns.push(`<button class="case-link-btn" style="background:rgba(148,163,184,.1);color:#94a3b8;border-color:rgba(148,163,184,.25)" onclick="event.stopPropagation(); copyCaption('${c.id}')">📋 Caption</button>`);
   const linksHtml = linkBtns.length ? `<div class="case-links">${linkBtns.join('')}</div>` : '';
 
   return `<div class="case-card" onclick="openEditCaseModal('${c.id}')">
