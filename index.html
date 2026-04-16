@@ -327,11 +327,34 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .overview-tasks-scroll::-webkit-scrollbar { width:4px; }
 .overview-tasks-scroll::-webkit-scrollbar-track { background:transparent; }
 .overview-tasks-scroll::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
-.overview-status-row { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; align-items:start; }
+.overview-status-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
 @media (max-width:900px) {
   .overview-status-row { grid-template-columns:1fr; }
   .overview-tasks-scroll { max-height:none; overflow-y:visible; }
 }
+
+/* ── FILINGS WEEK VIEW ── */
+.fw-nav { display:flex; align-items:center; gap:8px; padding:9px 16px; border-bottom:1px solid var(--filing-border); }
+.fw-nav-btn { background:var(--surface3); border:1px solid var(--border); color:var(--text2); border-radius:6px; padding:4px 12px; font-size:.8rem; cursor:pointer; font-family:inherit; transition:all .15s; }
+.fw-nav-btn:hover { border-color:var(--filing-accent); color:var(--filing-accent); }
+.fw-nav-label { font-size:.85rem; font-weight:600; color:var(--text); flex:1; text-align:center; }
+.fw-this-week-btn { background:rgba(249,115,22,.12); border-color:rgba(249,115,22,.35); color:#fb923c; }
+.fw-day { display:flex; align-items:flex-start; gap:12px; padding:8px 16px; border-bottom:1px solid var(--filing-border); transition:opacity .15s; }
+.fw-day:last-child { border-bottom:none; }
+.fw-day.fw-past { opacity:.45; }
+.fw-day.fw-today { background:rgba(249,115,22,.06); }
+.fw-day-header { width:64px; flex-shrink:0; }
+.fw-day-name { display:block; font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text3); }
+.fw-day-date { display:block; font-size:.82rem; font-weight:600; color:var(--text2); margin-top:1px; }
+.fw-today-pip { display:inline-block; width:6px; height:6px; border-radius:50%; background:#fb923c; margin-top:4px; }
+.fw-day-events { flex:1; display:flex; flex-direction:column; gap:4px; padding-top:1px; }
+.fw-event { display:flex; align-items:baseline; gap:7px; font-size:.8rem; cursor:pointer; padding:2px 5px; border-radius:5px; }
+.fw-event:hover { background:rgba(249,115,22,.1); }
+.fw-event-kind { font-size:.6rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; width:38px; flex-shrink:0; }
+.fw-event-title { color:var(--text); line-height:1.4; }
+.fw-event-client { color:var(--text3); }
+.fw-empty-day { font-size:.75rem; color:var(--text3); padding:3px 5px; }
+.fw-no-deadline { padding:8px 16px; font-size:.74rem; color:var(--text3); border-top:1px solid var(--filing-border); }
 
 /* ── EVICTIONS PANEL ── */
 .evictions-panel { background:#150808; border:1px solid #7a1515; border-radius:14px; overflow:hidden; }
@@ -902,6 +925,7 @@ let dragSrcId = null;
 let hideDone = true;
 let caseFilter = "active";
 let caseSearch = "";
+let filingsWeekOffset = 0;
 let calYear = new Date().getFullYear();
 let calMonth = new Date().getMonth();
 let caseDetailClient = null;
@@ -1404,22 +1428,15 @@ function renderTab(tab) {
   if (hideDone) filtered = filtered.filter(t => t.status !== "Done");
 
   // Split into filings and regular
-  const filings = filtered.filter(t => FILING_TYPES.has(t.type));
+  const allFilings = tasks.filter(t => FILING_TYPES.has(t.type));
   const regular = filtered.filter(t => !FILING_TYPES.has(t.type));
 
-  // Sort: incomplete first, then by deadline, then by sort_order
-  const sortTasks = arr => arr.sort((a,b) => {
+  // Sort regular: incomplete first, then by sort_order
+  regular.sort((a,b) => {
     if (a.status==="Done" && b.status!=="Done") return 1;
     if (a.status!=="Done" && b.status==="Done") return -1;
     return (a.sort_order||0) - (b.sort_order||0);
   });
-
-  sortTasks(filings);
-  sortTasks(regular);
-
-  const filingsHtml = filings.length
-    ? filings.map(t => renderTaskCard(t, true)).join("")
-    : `<div class="filings-empty">No filings due</div>`;
 
   const regularHtml = regular.length
     ? regular.map(t => renderTaskCard(t, false)).join("")
@@ -1439,15 +1456,8 @@ function renderTab(tab) {
           <div id="task-list-regular" class="task-list">${regularHtml}</div>
         </div>
       </div>
+      ${buildFilingsWeekHtml(allFilings)}
       <div class="overview-status-row">
-        <div class="filings-panel">
-          <div class="filings-header">
-            <span class="filings-header-icon">⚖️</span>
-            <span class="filings-header-title">Filings & Motions</span>
-            <span class="filings-header-count">${filings.filter(t=>t.status!=="Done").length} open</span>
-          </div>
-          <div id="task-list-filings" class="filings-list">${filingsHtml}</div>
-        </div>
         <div class="benefits-panel">
           <div class="benefits-header">
             <span class="benefits-header-icon">🏠</span>
@@ -1468,7 +1478,6 @@ function renderTab(tab) {
     </div>`;
 
   attachDragDrop("task-list-regular", regular);
-  attachDragDrop("task-list-filings", filings);
   attachStatusHandlers();
 }
 
@@ -1808,6 +1817,98 @@ function renderAppCard(app, readonly = false) {
     ${app.arrears ? `<div class="app-arrears">$${Number(app.arrears).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})}</div>` : ''}
     ${metaParts.length ? `<div class="app-meta-row">${metaParts.join(' · ')}</div>` : ''}
     ${warnings.length ? `<div class="app-warnings">${warnings.join('')}</div>` : ''}
+  </div>`;
+}
+
+function buildFilingsWeekHtml(allFilings) {
+  const todayStr = today();
+
+  // Build Mon–Sun array for the offset week
+  const now = new Date();
+  const dow = now.getDay(); // 0=Sun
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1) + filingsWeekOffset * 7);
+
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+    days.push({ date: d, str: `${y}-${m}-${day}`, isWeekend: i >= 5 });
+  }
+
+  // Build events map: dateStr → [{kind, task}]
+  const evMap = {};
+  allFilings.filter(t => t.status !== 'Done').forEach(t => {
+    if (t.draft_deadline) {
+      (evMap[t.draft_deadline] = evMap[t.draft_deadline] || []).push({ kind:'draft', task:t });
+    }
+    if (t.deadline) {
+      (evMap[t.deadline] = evMap[t.deadline] || []).push({ kind:'filing', task:t });
+    }
+  });
+
+  // Week label
+  const fmt = d => d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+  const weekLabel = `${fmt(days[0].date)} – ${fmt(days[6].date)}`;
+  const navHtml = `<div class="fw-nav">
+    <button class="fw-nav-btn" onclick="filingsWeekOffset--; renderCurrentTab()">←</button>
+    <span class="fw-nav-label">${weekLabel}</span>
+    <button class="fw-nav-btn" onclick="filingsWeekOffset++; renderCurrentTab()">→</button>
+    ${filingsWeekOffset !== 0 ? `<button class="fw-nav-btn fw-this-week-btn" onclick="filingsWeekOffset=0; renderCurrentTab()">This Week</button>` : ''}
+  </div>`;
+
+  // Day rows
+  const daysHtml = days.map(({ date, str, isWeekend }) => {
+    const dayEvs = evMap[str] || [];
+    if (isWeekend && dayEvs.length === 0) return '';
+
+    const isPast = str < todayStr;
+    const isToday = str === todayStr;
+    const dayName = date.toLocaleDateString('en-US', { weekday:'short' }).toUpperCase();
+    const dayDate = date.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+
+    let cls = 'fw-day';
+    if (isPast) cls += ' fw-past';
+    if (isToday) cls += ' fw-today';
+
+    const eventsHtml = dayEvs.length
+      ? dayEvs.map(({ kind, task }) => {
+          const isDraft = kind === 'draft';
+          const color = isPast ? 'var(--text3)' : isDraft ? '#f0a500' : '#e05c5c';
+          const kindLabel = isDraft ? 'Draft' : (task.hard_deadline ? '🔒 File' : 'File');
+          const icon = TYPE_ICON[task.type] || '📌';
+          const client = task.client ? `<span class="fw-event-client"> · ${escHtml(task.client)}</span>` : '';
+          return `<div class="fw-event" onclick="openEditModal('${task.id}')">
+            <span class="fw-event-kind" style="color:${color}">${kindLabel}</span>
+            <span class="fw-event-title">${icon} ${escHtml(task.title)}${client}</span>
+          </div>`;
+        }).join('')
+      : `<span class="fw-empty-day">—</span>`;
+
+    return `<div class="${cls}">
+      <div class="fw-day-header">
+        <span class="fw-day-name">${dayName}</span>
+        <span class="fw-day-date">${dayDate}</span>
+        ${isToday ? '<div class="fw-today-pip"></div>' : ''}
+      </div>
+      <div class="fw-day-events">${eventsHtml}</div>
+    </div>`;
+  }).join('');
+
+  const noDl = allFilings.filter(t => t.status !== 'Done' && !t.deadline && !t.draft_deadline).length;
+  const noDlNote = noDl ? `<div class="fw-no-deadline">${noDl} filing${noDl > 1 ? 's' : ''} with no deadline set</div>` : '';
+
+  const openCount = allFilings.filter(t => t.status !== 'Done').length;
+  return `<div class="filings-panel">
+    <div class="filings-header">
+      <span class="filings-header-icon">⚖️</span>
+      <span class="filings-header-title">Filings & Motions</span>
+      <span class="filings-header-count">${openCount} open</span>
+    </div>
+    ${navHtml}
+    <div class="fw-grid">${daysHtml || '<div class="fw-empty-day" style="padding:12px 16px">No deadlines this week</div>'}</div>
+    ${noDlNote}
   </div>`;
 }
 
