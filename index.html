@@ -339,22 +339,29 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .fw-nav-btn:hover { border-color:var(--filing-accent); color:var(--filing-accent); }
 .fw-nav-label { font-size:.85rem; font-weight:600; color:var(--text); flex:1; text-align:center; }
 .fw-this-week-btn { background:rgba(249,115,22,.12); border-color:rgba(249,115,22,.35); color:#fb923c; }
-.fw-day { display:flex; align-items:flex-start; gap:12px; padding:8px 16px; border-bottom:1px solid var(--filing-border); transition:opacity .15s; }
-.fw-day:last-child { border-bottom:none; }
+.fw-grid { display:flex; }
+.fw-day { flex:1; display:flex; flex-direction:column; padding:10px 12px; border-right:1px solid var(--filing-border); min-height:90px; transition:opacity .15s; }
+.fw-day:last-child { border-right:none; }
 .fw-day.fw-past { opacity:.45; }
 .fw-day.fw-today { background:rgba(249,115,22,.06); }
-.fw-day-header { width:64px; flex-shrink:0; }
+.fw-day-header { padding-bottom:7px; margin-bottom:8px; border-bottom:1px solid var(--filing-border); }
 .fw-day-name { display:block; font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text3); }
-.fw-day-date { display:block; font-size:.82rem; font-weight:600; color:var(--text2); margin-top:1px; }
-.fw-today-pip { display:inline-block; width:6px; height:6px; border-radius:50%; background:#fb923c; margin-top:4px; }
-.fw-day-events { flex:1; display:flex; flex-direction:column; gap:4px; padding-top:1px; }
-.fw-event { display:flex; align-items:baseline; gap:7px; font-size:.8rem; cursor:pointer; padding:2px 5px; border-radius:5px; }
+.fw-day-date { display:block; font-size:.85rem; font-weight:600; color:var(--text2); margin-top:2px; }
+.fw-today-pip { display:block; width:6px; height:6px; border-radius:50%; background:#fb923c; margin-top:4px; }
+.fw-day-events { display:flex; flex-direction:column; gap:5px; }
+.fw-event { display:flex; flex-direction:column; gap:1px; font-size:.78rem; cursor:pointer; padding:4px 5px; border-radius:5px; }
 .fw-event:hover { background:rgba(249,115,22,.1); }
-.fw-event-kind { font-size:.6rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; width:38px; flex-shrink:0; }
-.fw-event-title { color:var(--text); line-height:1.4; }
-.fw-event-client { color:var(--text3); }
-.fw-empty-day { font-size:.75rem; color:var(--text3); padding:3px 5px; }
+.fw-event-kind { font-size:.59rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
+.fw-event-title { color:var(--text); line-height:1.35; }
+.fw-event-client { font-size:.71rem; color:var(--text3); }
+.fw-empty-day { font-size:.75rem; color:var(--text3); padding:2px 4px; }
 .fw-no-deadline { padding:8px 16px; font-size:.74rem; color:var(--text3); border-top:1px solid var(--filing-border); }
+@media (max-width:700px) {
+  .fw-grid { flex-direction:column; }
+  .fw-day { border-right:none; border-bottom:1px solid var(--filing-border); min-height:auto; flex-direction:row; gap:12px; }
+  .fw-day:last-child { border-bottom:none; }
+  .fw-day-header { border-bottom:none; padding-bottom:0; margin-bottom:0; width:60px; flex-shrink:0; }
+}
 
 /* ── EVICTIONS PANEL ── */
 .evictions-panel { background:#150808; border:1px solid #7a1515; border-radius:14px; overflow:hidden; }
@@ -1878,10 +1885,11 @@ function buildFilingsWeekHtml(allFilings) {
           const color = isPast ? 'var(--text3)' : isDraft ? '#f0a500' : '#e05c5c';
           const kindLabel = isDraft ? 'Draft' : (task.hard_deadline ? '🔒 File' : 'File');
           const icon = TYPE_ICON[task.type] || '📌';
-          const client = task.client ? `<span class="fw-event-client"> · ${escHtml(task.client)}</span>` : '';
+          const client = task.client ? `<span class="fw-event-client">${escHtml(task.client)}</span>` : '';
           return `<div class="fw-event" onclick="openEditModal('${task.id}')">
             <span class="fw-event-kind" style="color:${color}">${kindLabel}</span>
-            <span class="fw-event-title">${icon} ${escHtml(task.title)}${client}</span>
+            <span class="fw-event-title">${icon} ${escHtml(task.title)}</span>
+            ${client}
           </div>`;
         }).join('')
       : `<span class="fw-empty-day">—</span>`;
