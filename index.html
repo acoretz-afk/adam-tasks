@@ -1312,7 +1312,9 @@ function copyCaption(caseId) {
   const c = cases.find(x => x.id === caseId);
   if (!c) return;
   const petitioner = c.landlord || 'Unknown Petitioner';
-  const respondent = c.client || 'Unknown Respondent';
+  const rawClient = c.client || 'Unknown Respondent';
+  const parts = rawClient.split(',').map(s => s.trim());
+  const respondent = parts.length === 2 ? `${parts[1]} ${parts[0]}` : rawClient;
   const index = c.index_number ? ` (${c.index_number})` : '';
   const caption = `${petitioner} v. ${respondent}${index}`;
   navigator.clipboard.writeText(caption).then(() => showToast('Caption copied'));
