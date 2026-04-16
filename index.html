@@ -1226,20 +1226,11 @@ function renderCaseDetail() {
   const calBtn = caseRecord && caseRecord.nto_date
     ? `<button class="case-link-btn case-link-cal" style="font-size:.8rem;padding:5px 10px" onclick="openNtoInOutlook('${caseRecord.id}')">📅 Add NTO to Outlook</button>`
     : '';
-  if (caseDetailEditMode) {
-    headerHtml += `<div class="case-detail-actions">
-      ${caseRecord ? `<button class="btn-edit-case" onclick="closeCaseDetail(); openEditCaseModal('${caseRecord.id}')">✏️ Edit Case</button>` : ''}
-      ${calBtn}
-      <button class="btn-cancel" style="padding:7px 16px;font-size:.85rem" onclick="caseDetailEditMode=false; renderCaseDetail()">View Only</button>
-      <button class="btn-cancel" style="padding:7px 16px;font-size:.85rem" onclick="closeCaseDetail()">Close</button>
-    </div>`;
-  } else {
-    headerHtml += `<div class="case-detail-actions">
-      <button class="btn-edit-case" onclick="caseDetailEditMode=true; renderCaseDetail()">✏️ Edit</button>
-      ${calBtn}
-      <button class="btn-cancel" style="padding:7px 16px;font-size:.85rem" onclick="closeCaseDetail()">Close</button>
-    </div>`;
-  }
+  headerHtml += `<div class="case-detail-actions">
+    ${caseRecord ? `<button class="btn-edit-case" onclick="closeCaseDetail(); openEditCaseModal('${caseRecord.id}')">✏️ Edit</button>` : ''}
+    ${calBtn}
+    <button class="btn-cancel" style="padding:7px 16px;font-size:.85rem" onclick="closeCaseDetail()">Close</button>
+  </div>`;
   document.getElementById('case-detail-header').innerHTML = headerHtml;
 
   // ── Body ──
@@ -1251,7 +1242,7 @@ function renderCaseDetail() {
   const resolvedApps = clientApps.filter(a => RESOLVED_STATUSES.has(a.status));
 
   const hiddenCount = doneRegular.length + doneFilings.length + resolvedApps.length;
-  const ro = !caseDetailEditMode;
+  const ro = true;
 
   const shownRegular = caseDetailShowCompleted ? [...openRegular, ...doneRegular] : openRegular;
   const shownFilings = caseDetailShowCompleted ? [...openFilings, ...doneFilings] : openFilings;
