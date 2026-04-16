@@ -74,7 +74,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .add-menu-item .menu-icon { font-size:1rem; width:20px; text-align:center; }
 
 /* ── TABS ── */
-.tabs { display:flex; gap:0; border-bottom:1px solid var(--border); background:var(--surface); padding:0 20px; overflow-x:auto; }
+.tabs { display:flex; gap:0; border-bottom:1px solid var(--border); background:var(--surface); padding:0 20px; overflow-x:auto; position:sticky; top:63px; z-index:99; }
 .tab { padding:12px 18px; font-size:.85rem; font-weight:500; color:var(--text3); cursor:pointer; border-bottom:2px solid transparent; white-space:nowrap; transition:all .15s; }
 .tab.active { color:var(--accent2); border-bottom-color:var(--accent2); }
 .tab:hover:not(.active) { color:var(--text2); }
