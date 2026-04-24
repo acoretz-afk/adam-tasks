@@ -269,7 +269,8 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .case-card:hover { border-color:var(--accent); background:var(--surface2); }
 .case-card-top { display:flex; align-items:flex-start; gap:8px; margin-bottom:5px; flex-wrap:wrap; }
 .case-client { font-size:.95rem; font-weight:600; flex:1; min-width:0; }
-.case-index { font-size:.72rem; color:var(--text3); font-family:monospace; white-space:nowrap; }
+.case-index { font-size:.8rem; font-weight:600; color:var(--text2); font-family:monospace; white-space:nowrap; background:var(--surface2); border:1px solid var(--border); border-radius:5px; padding:1px 6px; cursor:pointer; transition:background .15s; }
+.case-index:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
 .case-party-row { font-size:.78rem; color:var(--text2); margin-bottom:3px; line-height:1.45; }
 .case-meta-row { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:7px; }
 .case-date-chip { font-size:.71rem; font-weight:600; padding:2px 7px; border-radius:6px; }
@@ -1243,7 +1244,7 @@ function renderCaseDetail() {
     const statusClass = caseRecord.status === 'Active' ? 'status-pill-active' : caseRecord.status === 'Ready to Close' ? 'status-pill-ready' : 'status-pill-closed';
     headerHtml += `<span class="case-type-badge case-type-${caseRecord.case_type}">${caseRecord.case_type}</span>
       <span class="case-status-pill ${statusClass}">${escHtml(caseRecord.status)}</span>`;
-    if (caseRecord.index_number) headerHtml += `<span class="case-index">${escHtml(caseRecord.index_number)}</span>`;
+    if (caseRecord.index_number) headerHtml += `<span class="case-index" onclick="copyIndex('${caseRecord.id}')" title="Click to copy index number">${escHtml(caseRecord.index_number)}</span>`;
   }
   headerHtml += `</div>`;
 
@@ -1345,6 +1346,12 @@ function openNtoInOutlook(caseId) {
   });
 
   window.open('https://outlook.office.com/calendar/action/compose?' + params.toString(), '_blank');
+}
+
+function copyIndex(caseId) {
+  const c = cases.find(x => x.id === caseId);
+  if (!c || !c.index_number) return;
+  navigator.clipboard.writeText(c.index_number).then(() => showToast('Index number copied'));
 }
 
 function copyCaption(caseId) {
@@ -1675,7 +1682,7 @@ function renderCaseCard(c) {
     <div class="case-card-top">
       <span class="case-client client-name-link" onclick="event.stopPropagation(); openCaseDetailForCase('${c.id}')">${escHtml(c.client)}</span>
       ${typeBadge}
-      <span class="case-index">${escHtml(c.index_number || '')}</span>
+      ${c.index_number ? `<span class="case-index" onclick="event.stopPropagation(); copyIndex('${c.id}')" title="Click to copy index number">${escHtml(c.index_number)}</span>` : ''}
       ${statusPill}
     </div>
     ${partyRow}
