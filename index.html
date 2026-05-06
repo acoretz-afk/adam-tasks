@@ -1809,7 +1809,7 @@ function renderClientView(el) {
     const appsHtml = clientApps.length ? `
       <div class="client-apps">
         <div class="client-apps-title">Benefit Applications</div>
-        ${clientApps.map(renderAppCard).join('')}
+        ${clientApps.map(app => renderAppCard(app)).join('')}
       </div>` : '';
     return `<div class="client-group">
       <div class="client-group-header">
@@ -2023,7 +2023,7 @@ function buildBenefitsPanelHtml() {
   const section = (label, apps) => apps.length ? `
     <div class="app-section">
       <span class="app-section-label">${label}</span>
-      ${apps.map(renderAppCard).join('')}
+      ${apps.map(app => renderAppCard(app)).join('')}
     </div>` : '';
 
   const body = [
