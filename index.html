@@ -884,7 +884,7 @@ const TASK_TYPES = [
   "Answer","Motion","Stipulation of Settlement","HP Petition","OSC","Other Filing",
   "Internal/Admin","OPA Communication","Other"
 ];
-const FILING_TYPES = new Set(["Answer","Motion","Stipulation of Settlement","HP Petition","OSC","Other Filing"]);
+const FILING_TYPES = new Set(["Answer","Notice of Appearance","Answer + Notice of Appearance","Motion","Stipulation of Settlement","HP Petition","OSC","Other Filing"]);
 
 const STATUSES = ["To Do","Done"];
 
@@ -897,7 +897,7 @@ const PRIORITY_STYLE = {
 
 const TYPE_ICON = {
   "Client Call":"📞","Client Email":"✉️","Agency/Nonprofit Call":"📋",
-  "Answer":"📄","Motion":"📝","Stipulation of Settlement":"🤝","HP Petition":"📋","OSC":"🚨","Other Filing":"📁",
+  "Answer":"📄","Notice of Appearance":"📜","Answer + Notice of Appearance":"📄","Motion":"📝","Stipulation of Settlement":"🤝","HP Petition":"📋","OSC":"🚨","Other Filing":"📁",
   "Internal/Admin":"🗂️","OPA Communication":"📨","Other":"📌"
 };
 
@@ -2572,7 +2572,7 @@ function updateFilingFields() {
 }
 
 const TASK_ONLY_TYPES = ["Client Call","Client Email","Agency/Nonprofit Call","Internal/Admin","OPA Communication","Other"];
-const FILING_ONLY_TYPES = ["Answer","Motion","Stipulation of Settlement","HP Petition","OSC","Other Filing"];
+const FILING_ONLY_TYPES = ["Answer","Notice of Appearance","Answer + Notice of Appearance","Motion","Stipulation of Settlement","HP Petition","OSC","Other Filing"];
 
 function setTypeOptions(types, defaultVal) {
   const sel = document.getElementById("f-type");
