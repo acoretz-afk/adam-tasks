@@ -1540,40 +1540,58 @@ function generateNoaPdf() {
   const dated    = document.getElementById('noa-date').value.trim();
 
   const doc = new window.jspdf.jsPDF({ unit:'pt', format:'letter' });
-  const LM = 72, RM = 540, TAB = 342;   // left margin, right margin, right-column / signature tab
-  const rule = '-'.repeat(74) + 'X';
+  const LM = 72, RM = 540, RIGHT = 340, BOX_R = 312;  // margins, right column, caption-box X position
   const NL = 16, GAP = 6;
   doc.setFont('times', 'normal');
   doc.setFontSize(12);
   let y = 74;
+
+  // Caption-box rule (dashes) ending in an X at BOX_R
+  const xW = doc.getTextWidth('X'), spaceW = doc.getTextWidth(' ');
+  let rule = '';
+  while (doc.getTextWidth(rule + '-') <= (BOX_R - LM - xW)) rule += '-';
+  rule += 'X';
+
+  // Party-label indent: start just right of the comma on the line above,
+  // clamped so it never runs into the right column.
+  const labelX = (nameLine, descriptor) => {
+    let x = LM + doc.getTextWidth(nameLine) + spaceW;
+    const maxX = RIGHT - 10 - doc.getTextWidth(descriptor + ',');
+    if (x > maxX) x = maxX;
+    if (x < LM + 36) x = LM + 36;
+    return x;
+  };
 
   // ── Court / county / part ──
   doc.text('CIVIL COURT OF THE CITY OF NEW YORK', LM, y); y += NL;
   doc.text(`COUNTY OF QUEENS: HOUSING PART ${part}`, LM, y); y += NL;
   y += 4; doc.text(rule, LM, y); y += NL + 4;
 
-  // ── Caption (right column tabbed over) ──
+  // ── Caption (Index No. / title in right column, past the X) ──
   let indexDrawn = false, titleDrawn = false;
   pets.forEach(blk => {
+    let lastLine = '';
     blk.names.forEach(n => {
-      doc.text(`${n},`, LM, y);
-      if (!indexDrawn) { doc.text(`Index No. ${index}`, TAB, y); indexDrawn = true; }
+      lastLine = `${n},`;
+      doc.text(lastLine, LM, y);
+      if (!indexDrawn) { doc.text(`Index No. ${index}`, RIGHT, y); indexDrawn = true; }
       y += NL;
     });
     if (blk.label) {
-      doc.text(`${blk.label},`, LM + 48, y);
-      if (!titleDrawn) { doc.text('NOTICE OF APPEARANCE', TAB, y); titleDrawn = true; }
+      doc.text(`${blk.label},`, labelX(lastLine, blk.label), y);
+      if (!titleDrawn) { doc.text('NOTICE OF APPEARANCE', RIGHT, y); titleDrawn = true; }
       y += NL + GAP;
     }
   });
-  if (!indexDrawn) { doc.text(`Index No. ${index}`, TAB, y - NL); }
-  if (!titleDrawn) { doc.text('NOTICE OF APPEARANCE', TAB, y); }
+  if (!indexDrawn) { doc.text(`Index No. ${index}`, RIGHT, y - NL); }
+  if (!titleDrawn) { doc.text('NOTICE OF APPEARANCE', RIGHT, y); }
 
   y += 2; doc.text('- against -', LM + 24, y); y += NL + GAP;
 
   resps.forEach(blk => {
-    blk.names.forEach(n => { doc.text(`${n},`, LM, y); y += NL; });
-    if (blk.label) { doc.text(`${blk.label},`, LM + 48, y); y += NL + GAP; }
+    let lastLine = '';
+    blk.names.forEach(n => { lastLine = `${n},`; doc.text(lastLine, LM, y); y += NL; });
+    if (blk.label) { doc.text(`${blk.label},`, labelX(lastLine, blk.label), y); y += NL + GAP; }
   });
 
   if (premises) {
@@ -1590,22 +1608,22 @@ function generateNoaPdf() {
   });
   y += 22;
 
-  // ── Signature block (right side, full-width signature rule) ──
+  // ── Signature block (right side; LISA directly under YOURS, etc.) ──
   doc.text(`Dated: ${dated}`, LM, y);
-  doc.text('YOURS, etc.', TAB, y);
-  doc.text('New York, NY', LM + 36, y + 16);
-  y += 42;
-  doc.text('LISA RIVERA ESQ.', TAB, y); y += NL;
-  doc.text('New York Legal Assistance Group', TAB, y); y += NL;
-  doc.text('100 Pearl St., 19th Fl.', TAB, y); y += NL;
-  doc.text('New York, New York 10004', TAB, y); y += NL + 12;
-  doc.text('/s/ Adam Coretz', TAB, y); y += 6;
+  doc.text('YOURS, etc.', RIGHT, y);
+  y += NL;
+  doc.text('New York, NY', LM + 36, y);
+  doc.text('LISA RIVERA ESQ.', RIGHT, y); y += NL;
+  doc.text('New York Legal Assistance Group', RIGHT, y); y += NL;
+  doc.text('100 Pearl St., 19th Fl.', RIGHT, y); y += NL;
+  doc.text('New York, New York 10004', RIGHT, y); y += NL + 12;
+  doc.text('/s/ Adam Coretz', RIGHT, y); y += 6;
   doc.setLineWidth(0.7);
-  doc.line(TAB, y, RM, y); y += 14;
-  doc.text('ADAM CORETZ, of Counsel', TAB, y); y += NL;
-  doc.text(`Attorneys for Respondent ${client}`, TAB, y); y += NL;
-  doc.text('Phone: (212) 613-6567', TAB, y); y += NL;
-  doc.text('Email: acoretz@nylag.org', TAB, y);
+  doc.line(RIGHT, y, RM, y); y += 14;
+  doc.text('ADAM CORETZ, of Counsel', RIGHT, y); y += NL;
+  doc.text(`Attorneys for Respondent ${client}`, RIGHT, y); y += NL;
+  doc.text('Phone: (212) 613-6567', RIGHT, y); y += NL;
+  doc.text('Email: acoretz@nylag.org', RIGHT, y);
 
   const safe = (client || 'Respondent').replace(/[^\w\s-]/g, '').trim() || 'Respondent';
   doc.save(`Notice of Appearance - ${safe}.pdf`);
