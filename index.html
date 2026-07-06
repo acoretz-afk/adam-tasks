@@ -1552,15 +1552,21 @@ function generateNoaPdf() {
   while (doc.getTextWidth(rule + '-') <= (BOX_R - LM - xW)) rule += '-';
   rule += 'X';
 
-  // Party-label indent: start just right of the comma on the line above,
-  // clamped so it never runs into the right column.
-  const labelX = (nameLine, descriptor) => {
-    let x = LM + doc.getTextWidth(nameLine) + spaceW;
-    const maxX = RIGHT - 10 - doc.getTextWidth(descriptor + ',');
-    if (x > maxX) x = maxX;
-    if (x < LM + 36) x = LM + 36;
-    return x;
-  };
+  // Single label tab: all party labels align here, placed just right of the
+  // comma on the longest name line so every label clears its own name.
+  const allGroups = [...pets, ...resps];
+  let commonLabelX = LM + 36;
+  allGroups.forEach(g => g.names.forEach(n => {
+    commonLabelX = Math.max(commonLabelX, LM + doc.getTextWidth(`${n},`) + spaceW);
+  }));
+  // keep the petitioner label (shares the NOTICE OF APPEARANCE line) clear of the right column
+  const noticeLabel = (pets.find(g => g.label) || {}).label || '';
+  if (noticeLabel) commonLabelX = Math.min(commonLabelX, RIGHT - 10 - doc.getTextWidth(`${noticeLabel},`));
+  // keep the widest label within the page margin
+  let maxLabelW = 0;
+  allGroups.forEach(g => { if (g.label) maxLabelW = Math.max(maxLabelW, doc.getTextWidth(`${g.label},`)); });
+  commonLabelX = Math.min(commonLabelX, RM - 6 - maxLabelW);
+  if (commonLabelX < LM + 36) commonLabelX = LM + 36;
 
   // ── Court / county / part ──
   doc.text('CIVIL COURT OF THE CITY OF NEW YORK', LM, y); y += NL;
@@ -1570,15 +1576,13 @@ function generateNoaPdf() {
   // ── Caption (Index No. / title in right column, past the X) ──
   let indexDrawn = false, titleDrawn = false;
   pets.forEach(blk => {
-    let lastLine = '';
     blk.names.forEach(n => {
-      lastLine = `${n},`;
-      doc.text(lastLine, LM, y);
+      doc.text(`${n},`, LM, y);
       if (!indexDrawn) { doc.text(`Index No. ${index}`, RIGHT, y); indexDrawn = true; }
       y += NL;
     });
     if (blk.label) {
-      doc.text(`${blk.label},`, labelX(lastLine, blk.label), y);
+      doc.text(`${blk.label},`, commonLabelX, y);
       if (!titleDrawn) { doc.text('NOTICE OF APPEARANCE', RIGHT, y); titleDrawn = true; }
       y += NL + GAP;
     }
@@ -1589,9 +1593,8 @@ function generateNoaPdf() {
   y += 2; doc.text('- against -', LM + 24, y); y += NL + GAP;
 
   resps.forEach(blk => {
-    let lastLine = '';
-    blk.names.forEach(n => { lastLine = `${n},`; doc.text(lastLine, LM, y); y += NL; });
-    if (blk.label) { doc.text(`${blk.label},`, labelX(lastLine, blk.label), y); y += NL + GAP; }
+    blk.names.forEach(n => { doc.text(`${n},`, LM, y); y += NL; });
+    if (blk.label) { doc.text(`${blk.label},`, commonLabelX, y); y += NL + GAP; }
   });
 
   if (premises) {
