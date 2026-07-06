@@ -873,19 +873,26 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 </div>
 
 <!-- NOTICE OF APPEARANCE GENERATOR MODAL -->
+<style>
+.noa-party-group { border:1px solid var(--border); border-radius:8px; padding:10px; margin-bottom:8px; background:var(--surface2); }
+.noa-party-head { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+.noa-party-head .noa-label { flex:1; }
+.noa-block-remove { flex:0 0 auto; background:var(--surface3); color:var(--text3); border:1px solid var(--border); border-radius:6px; width:28px; height:28px; font-size:1.1rem; line-height:1; cursor:pointer; }
+.noa-block-remove:hover { color:#f87171; border-color:#f87171; }
+.noa-names { min-height:38px; }
+.noa-sublabel { font-size:.72rem; color:var(--text3); margin-bottom:4px; }
+</style>
 <div class="modal-overlay" id="noa-modal-overlay">
-  <div class="modal">
-    <div class="modal-title">📜 Generate Notice of Appearance</div>
+  <div class="modal" style="width:min(640px,100%)">
+    <div class="modal-title">📜 Generate Notice of Appearance <span style="font-weight:400;color:var(--text3);font-size:.85rem">— Queens Housing Court</span></div>
 
     <div class="two-fields">
       <div class="field-row">
-        <label class="field-label">County</label>
-        <select id="noa-county" class="field-select">
-          <option value="NEW YORK">New York</option>
-          <option value="KINGS">Kings</option>
-          <option value="QUEENS">Queens</option>
-          <option value="BRONX">Bronx</option>
-          <option value="RICHMOND">Richmond</option>
+        <label class="field-label">Part</label>
+        <select id="noa-part" class="field-select">
+          <option>A</option><option>B</option><option>C</option><option>D</option>
+          <option>E</option><option>F</option><option>G</option><option>O</option>
+          <option>P</option><option>S</option><option>SPP</option><option>52</option>
         </select>
       </div>
       <div class="field-row">
@@ -894,24 +901,24 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
       </div>
     </div>
 
-    <div class="field-row">
-      <label class="field-label">Petitioner(s) — Landlord</label>
-      <input id="noa-petitioner" type="text" class="field-input" placeholder="Petitioner / landlord name">
-    </div>
+    <label class="field-label" style="margin-top:6px">Petitioner(s)</label>
+    <p class="noa-sublabel">Each group = one or more names + a label (e.g. Petitioner-Landlord(s), Petitioner). Add a group per label as it appears in the petition.</p>
+    <div id="noa-pet-blocks"></div>
+    <button type="button" class="add-subtask-btn" id="noa-add-pet">+ Add petitioner group</button>
 
-    <div class="field-row">
-      <label class="field-label">Respondent(s) — Tenant</label>
-      <input id="noa-tenant" type="text" class="field-input" placeholder="e.g. Jane Smith">
-    </div>
+    <label class="field-label" style="margin-top:16px">Respondent(s)</label>
+    <p class="noa-sublabel">One name per line. Use separate groups for different labels (Respondent-Tenant(s), Respondent-Undertenant(s), Respondent-Occupant(s), "John Doe"/"Jane Doe", etc.).</p>
+    <div id="noa-resp-blocks"></div>
+    <button type="button" class="add-subtask-btn" id="noa-add-resp">+ Add respondent group</button>
 
-    <div class="field-row">
-      <label class="field-label">Respondent(s) — Undertenant <span style="color:var(--text3);font-weight:400">(optional)</span></label>
-      <input id="noa-undertenant" type="text" class="field-input" placeholder="Leave blank if none">
+    <div class="field-row" style="margin-top:16px">
+      <label class="field-label">Subject Premises <span style="color:var(--text3);font-weight:400">(address line in caption, optional)</span></label>
+      <textarea id="noa-premises" class="field-textarea" style="min-height:38px" placeholder="e.g. 123 Main St, Apt 4B, Queens, NY 11375"></textarea>
     </div>
 
     <div class="two-fields">
       <div class="field-row">
-        <label class="field-label">Client (appears in body &amp; signature)</label>
+        <label class="field-label">Client represented <span style="color:var(--text3);font-weight:400">(body &amp; signature)</span></label>
         <input id="noa-client" type="text" class="field-input" placeholder="Respondent you represent">
       </div>
       <div class="field-row">
@@ -919,6 +926,17 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
         <input id="noa-date" type="text" class="field-input" placeholder="e.g. July 6, 2026">
       </div>
     </div>
+
+    <datalist id="noa-pet-labels">
+      <option value="Petitioner-Landlord(s)"></option>
+      <option value="Petitioner"></option>
+    </datalist>
+    <datalist id="noa-resp-labels">
+      <option value="Respondent-Tenant(s)"></option>
+      <option value="Respondent-Undertenant(s)"></option>
+      <option value="Respondent-Occupant(s)"></option>
+      <option value="Respondent"></option>
+    </datalist>
 
     <div class="modal-actions">
       <button class="btn-cancel" id="noa-btn-cancel">Cancel</button>
@@ -1428,8 +1446,6 @@ function copyCaption(caseId) {
 // ═══════════════════════════════════════════════════
 let noaCaseId = null;
 
-const NOA_COUNTY_MAP = { QU:'QUEENS', NY:'NEW YORK', KI:'KINGS', BX:'BRONX', RI:'RICHMOND' };
-
 // "Last, First" -> "First Last"; passthrough if not in that form
 function flipName(raw) {
   if (!raw) return '';
@@ -1437,26 +1453,72 @@ function flipName(raw) {
   return parts.length === 2 && parts[1] ? `${parts[1]} ${parts[0]}` : raw.trim();
 }
 
-function countyFromIndex(index) {
-  if (!index) return '';
-  const m = index.toUpperCase().match(/\/\s*([A-Z]{2})\b/);
-  return m ? (NOA_COUNTY_MAP[m[1]] || '') : '';
-}
-
 function longDate(d) {
   return d.toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' });
+}
+
+// Add an editable party group (names + label) to a container
+function noaAddGroup(container, listId, names = '', label = '') {
+  const div = document.createElement('div');
+  div.className = 'noa-party-group';
+  div.innerHTML =
+    `<div class="noa-party-head">
+       <input type="text" class="field-input noa-label" list="${listId}" placeholder="Label (e.g. Respondent-Tenant(s))">
+       <button type="button" class="noa-block-remove" title="Remove group">×</button>
+     </div>
+     <textarea class="field-textarea noa-names" placeholder="One name per line"></textarea>`;
+  div.querySelector('.noa-label').value = label;
+  div.querySelector('.noa-names').value = names;
+  div.querySelector('.noa-block-remove').addEventListener('click', () => {
+    const parent = div.parentElement;
+    div.remove();
+    if (parent && parent.children.length === 0) noaAddGroup(parent, listId);
+  });
+  container.appendChild(div);
+  return div;
+}
+
+function noaReadGroups(container) {
+  return [...container.querySelectorAll('.noa-party-group')].map(g => ({
+    names: g.querySelector('.noa-names').value.split('\n').map(s => s.trim()).filter(Boolean),
+    label: g.querySelector('.noa-label').value.trim(),
+  })).filter(g => g.names.length || g.label);
+}
+
+// Word-wrap with a different width for the first line (for first-line indent)
+function splitIndented(doc, text, firstW, restW) {
+  const out = [];
+  let line = '', width = firstW;
+  for (const w of text.split(/\s+/)) {
+    const test = line ? line + ' ' + w : w;
+    if (line && doc.getTextWidth(test) > width) { out.push(line); line = w; width = restW; }
+    else line = test;
+  }
+  if (line) out.push(line);
+  return out;
 }
 
 function openNoaModal(caseId) {
   const c = cases.find(x => x.id === caseId);
   if (!c) return;
   noaCaseId = caseId;
-  const client = flipName(c.client);
-  document.getElementById('noa-county').value = countyFromIndex(c.index_number) || 'QUEENS';
+
+  const partSel = document.getElementById('noa-part');
+  const partVal = (c.part || '').trim();
+  if (partVal && ![...partSel.options].some(o => o.value === partVal)) {
+    partSel.add(new Option(partVal, partVal), 0);
+  }
+  partSel.value = partVal && [...partSel.options].some(o => o.value === partVal) ? partVal : 'A';
+
   document.getElementById('noa-index').value = c.index_number || '';
-  document.getElementById('noa-petitioner').value = c.landlord || '';
-  document.getElementById('noa-tenant').value = client;
-  document.getElementById('noa-undertenant').value = '';
+
+  const client = flipName(c.client);
+  const petC = document.getElementById('noa-pet-blocks'); petC.innerHTML = '';
+  noaAddGroup(petC, 'noa-pet-labels', c.landlord || '', 'Petitioner-Landlord(s)');
+  const respC = document.getElementById('noa-resp-blocks'); respC.innerHTML = '';
+  noaAddGroup(respC, 'noa-resp-labels', client, 'Respondent-Tenant(s)');
+
+  document.getElementById('noa-premises').value = '';
   document.getElementById('noa-client').value = client;
   document.getElementById('noa-date').value = longDate(new Date());
   document.getElementById('noa-modal-overlay').style.display = 'flex';
@@ -1469,63 +1531,81 @@ function closeNoaModal() {
 
 function generateNoaPdf() {
   if (!window.jspdf || !window.jspdf.jsPDF) { showToast('PDF library not loaded'); return; }
-  const county      = document.getElementById('noa-county').value;
-  const index       = document.getElementById('noa-index').value.trim();
-  const petitioner  = document.getElementById('noa-petitioner').value.trim() || 'XXXXXXXXX';
-  const tenant      = document.getElementById('noa-tenant').value.trim() || 'XXXXXXXXX';
-  const undertenant = document.getElementById('noa-undertenant').value.trim();
-  const client      = document.getElementById('noa-client').value.trim() || tenant;
-  const dated       = document.getElementById('noa-date').value.trim();
+  const part     = document.getElementById('noa-part').value;
+  const index    = document.getElementById('noa-index').value.trim();
+  const pets     = noaReadGroups(document.getElementById('noa-pet-blocks'));
+  const resps    = noaReadGroups(document.getElementById('noa-resp-blocks'));
+  const premises = document.getElementById('noa-premises').value.trim();
+  const client   = document.getElementById('noa-client').value.trim() || 'XXXXXXX';
+  const dated    = document.getElementById('noa-date').value.trim();
 
   const doc = new window.jspdf.jsPDF({ unit:'pt', format:'letter' });
-  const LM = 72, RM = 540, SIG = 320;   // left margin, right margin, signature column x
+  const LM = 72, RM = 540, TAB = 342;   // left margin, right margin, right-column / signature tab
   const rule = '-'.repeat(74) + 'X';
+  const NL = 16, GAP = 6;
   doc.setFont('times', 'normal');
   doc.setFontSize(12);
   let y = 74;
-  const line = (txt, x=LM, dy=15) => { doc.text(txt, x, y); y += dy; };
 
-  // ── Court / county ──
-  line('CIVIL COURT OF THE CITY OF NEW YORK');
-  line(`COUNTY OF ${county}: HOUSING PART`);
-  y += 4; line(rule); y += 4;
+  // ── Court / county / part ──
+  doc.text('CIVIL COURT OF THE CITY OF NEW YORK', LM, y); y += NL;
+  doc.text(`COUNTY OF QUEENS: HOUSING PART ${part}`, LM, y); y += NL;
+  y += 4; doc.text(rule, LM, y); y += NL + 4;
 
-  // ── Caption ──
-  doc.text(`${petitioner},`, LM, y);
-  doc.text(`Index No. ${index}`, SIG, y); y += 26;
-  doc.text('Petitioner-Landlord(s),', LM + 48, y);
-  doc.text('NOTICE OF APPEARANCE', SIG, y); y += 24;
-  doc.text('- against -', LM + 24, y); y += 26;
-  doc.text(`${tenant},`, LM, y); y += 20;
-  doc.text('Respondent-Tenant(s),', LM + 48, y); y += 26;
-  if (undertenant) {
-    doc.text(`${undertenant},`, LM, y); y += 20;
-    doc.text('Respondent-Undertenant(s),', LM + 48, y); y += 26;
+  // ── Caption (right column tabbed over) ──
+  let indexDrawn = false, titleDrawn = false;
+  pets.forEach(blk => {
+    blk.names.forEach(n => {
+      doc.text(`${n},`, LM, y);
+      if (!indexDrawn) { doc.text(`Index No. ${index}`, TAB, y); indexDrawn = true; }
+      y += NL;
+    });
+    if (blk.label) {
+      doc.text(`${blk.label},`, LM + 48, y);
+      if (!titleDrawn) { doc.text('NOTICE OF APPEARANCE', TAB, y); titleDrawn = true; }
+      y += NL + GAP;
+    }
+  });
+  if (!indexDrawn) { doc.text(`Index No. ${index}`, TAB, y - NL); }
+  if (!titleDrawn) { doc.text('NOTICE OF APPEARANCE', TAB, y); }
+
+  y += 2; doc.text('- against -', LM + 24, y); y += NL + GAP;
+
+  resps.forEach(blk => {
+    blk.names.forEach(n => { doc.text(`${n},`, LM, y); y += NL; });
+    if (blk.label) { doc.text(`${blk.label},`, LM + 48, y); y += NL + GAP; }
+  });
+
+  if (premises) {
+    premises.split('\n').map(s => s.trim()).filter(Boolean).forEach(l => { doc.text(l, LM, y); y += NL; });
+    y += GAP;
   }
-  y += 2; line(rule); y += 14;
 
-  // ── Body ──
+  y += 2; doc.text(rule, LM, y); y += NL + 8;
+
+  // ── Body (tab / first-line indent before PLEASE) ──
   const body = `PLEASE TAKE NOTICE, that respondent ${client} hereby notifies Petitioner that the undersigned has been retained as attorney for said respondent and demands that you file and serve all papers in this proceeding upon the undersigned at the office and address stated below.`;
-  doc.splitTextToSize(body, RM - LM).forEach(l => { doc.text(l, LM, y); y += 20; });
+  splitIndented(doc, body, RM - LM - 36, RM - LM).forEach((l, i) => {
+    doc.text(l, i === 0 ? LM + 36 : LM, y); y += 20;
+  });
   y += 22;
 
-  // ── Signature block ──
+  // ── Signature block (right side, full-width signature rule) ──
   doc.text(`Dated: ${dated}`, LM, y);
-  doc.text('YOURS, etc.', SIG, y);
+  doc.text('YOURS, etc.', TAB, y);
   doc.text('New York, NY', LM + 36, y + 16);
-  y += 44;
-  ['LISA RIVERA ESQ.',
-   'New York Legal Assistance Group',
-   '100 Pearl St., 19th Fl.',
-   'New York, New York 10004',
-   '',
-   '/s/ Adam Coretz',
-   '___________',
-   'ADAM CORETZ, of Counsel',
-   `Attorneys for Respondent ${client}`,
-   'Phone: (212) 613-6567',
-   'Email: acoretz@nylag.org'
-  ].forEach(l => { if (l) doc.text(l, SIG, y); y += 16; });
+  y += 42;
+  doc.text('LISA RIVERA ESQ.', TAB, y); y += NL;
+  doc.text('New York Legal Assistance Group', TAB, y); y += NL;
+  doc.text('100 Pearl St., 19th Fl.', TAB, y); y += NL;
+  doc.text('New York, New York 10004', TAB, y); y += NL + 12;
+  doc.text('/s/ Adam Coretz', TAB, y); y += 6;
+  doc.setLineWidth(0.7);
+  doc.line(TAB, y, RM, y); y += 14;
+  doc.text('ADAM CORETZ, of Counsel', TAB, y); y += NL;
+  doc.text(`Attorneys for Respondent ${client}`, TAB, y); y += NL;
+  doc.text('Phone: (212) 613-6567', TAB, y); y += NL;
+  doc.text('Email: acoretz@nylag.org', TAB, y);
 
   const safe = (client || 'Respondent').replace(/[^\w\s-]/g, '').trim() || 'Respondent';
   doc.save(`Notice of Appearance - ${safe}.pdf`);
@@ -2990,6 +3070,8 @@ document.getElementById('court-modal-overlay').addEventListener('click', e => { 
 
 document.getElementById('noa-btn-generate').addEventListener('click', generateNoaPdf);
 document.getElementById('noa-btn-cancel').addEventListener('click', closeNoaModal);
+document.getElementById('noa-add-pet').addEventListener('click', () => noaAddGroup(document.getElementById('noa-pet-blocks'), 'noa-pet-labels'));
+document.getElementById('noa-add-resp').addEventListener('click', () => noaAddGroup(document.getElementById('noa-resp-blocks'), 'noa-resp-labels'));
 document.getElementById('noa-modal-overlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeNoaModal(); });
 
 // Keyboard shortcuts
