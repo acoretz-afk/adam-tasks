@@ -1552,11 +1552,11 @@ function generateNoaPdf() {
   while (doc.getTextWidth(rule + '-') <= (BOX_R - LM - xW)) rule += '-';
   rule += 'X';
 
-  // Single label tab: all party labels align here, placed just right of the
-  // comma on the longest name line so every label clears its own name.
+  // Single label tab: anchor to just right of the petitioner name's comma,
+  // then align every party label (respondents included) to that same x.
   const allGroups = [...pets, ...resps];
   let commonLabelX = LM + 36;
-  allGroups.forEach(g => g.names.forEach(n => {
+  pets.forEach(g => g.names.forEach(n => {
     commonLabelX = Math.max(commonLabelX, LM + doc.getTextWidth(`${n},`) + spaceW);
   }));
   // keep the petitioner label (shares the NOTICE OF APPEARANCE line) clear of the right column
