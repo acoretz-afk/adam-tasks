@@ -14,6 +14,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
 <style>
 :root {
   --bg: #0f0f1a;
@@ -945,6 +946,74 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
   </div>
 </div>
 
+<!-- STIPULATION OF SETTLEMENT GENERATOR MODAL -->
+<div class="modal-overlay" id="stip-modal-overlay">
+  <div class="modal" style="width:min(640px,100%)">
+    <div class="modal-title">🤝 Generate Stipulation of Settlement <span style="font-weight:400;color:var(--text3);font-size:.85rem">— Queens Housing Court</span></div>
+
+    <div class="two-fields">
+      <div class="field-row">
+        <label class="field-label">Part</label>
+        <select id="stip-part" class="field-select">
+          <option>A</option><option>B</option><option>C</option><option>D</option>
+          <option>E</option><option>F</option><option>G</option><option>O</option>
+          <option>P</option><option>S</option><option>SPP</option><option>52</option>
+        </select>
+      </div>
+      <div class="field-row">
+        <label class="field-label">Index No.</label>
+        <input id="stip-index" type="text" class="field-input" placeholder="e.g. LT-311664-24/QU">
+      </div>
+    </div>
+
+    <div class="field-row">
+      <label class="field-label">Petitioner / Landlord</label>
+      <input id="stip-petitioner" type="text" class="field-input" placeholder="Petitioner name">
+    </div>
+
+    <div class="field-row">
+      <label class="field-label">Respondent / Tenant</label>
+      <input id="stip-respondent" type="text" class="field-input" placeholder="e.g. Jane Smith">
+    </div>
+
+    <div class="field-row">
+      <label class="field-label">Occupant(s) <span style="color:var(--text3);font-weight:400">(optional)</span></label>
+      <input id="stip-occupants" type="text" class="field-input" placeholder='e.g. "John Doe", "Jane Doe"'>
+    </div>
+
+    <div class="field-row">
+      <label class="field-label">Subject Premises <span style="color:var(--text3);font-weight:400">(address, optional)</span></label>
+      <textarea id="stip-premises" class="field-textarea" style="min-height:38px" placeholder="e.g. 123 Main St, Apt 4B&#10;Queens, NY 11375"></textarea>
+    </div>
+
+    <div class="two-fields">
+      <div class="field-row">
+        <label class="field-label">Opposing Firm <span style="color:var(--text3);font-weight:400">(petitioner's counsel)</span></label>
+        <input id="stip-firm" type="text" class="field-input" placeholder="Firm name">
+      </div>
+      <div class="field-row">
+        <label class="field-label">Opposing Attorney <span style="color:var(--text3);font-weight:400">(By:)</span></label>
+        <input id="stip-opp-attorney" type="text" class="field-input" placeholder="Attorney name">
+      </div>
+    </div>
+
+    <div class="field-row">
+      <label class="field-label">Date</label>
+      <input id="stip-date" type="text" class="field-input" placeholder="e.g. July 24, 2026">
+    </div>
+
+    <div class="field-row">
+      <label class="field-label">Settlement Terms <span style="color:var(--text3);font-weight:400">(seeded from Stip Notes; edit freely — one term per line)</span></label>
+      <textarea id="stip-terms" class="field-textarea" style="min-height:120px" placeholder="1. Respondent shall pay arrears of $... on or before ...&#10;2. ..."></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" id="stip-btn-cancel">Cancel</button>
+      <button class="btn-save" id="stip-btn-generate">Download Word Doc</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1344,6 +1413,7 @@ function renderCaseDetail() {
     ${caseRecord ? `<button class="btn-edit-case" onclick="closeCaseDetail(); openEditCaseModal('${caseRecord.id}')">✏️ Edit</button>` : ''}
     ${caseRecord ? `<button class="btn-edit-case" onclick="copyCaption('${caseRecord.id}')">📋 Caption</button>` : ''}
     ${caseRecord ? `<button class="btn-edit-case" onclick="openNoaModal('${caseRecord.id}')">📜 Notice of Appearance</button>` : ''}
+    ${caseRecord ? `<button class="btn-edit-case" onclick="openStipModal('${caseRecord.id}')">🤝 Stip of Settlement</button>` : ''}
     ${calBtn}
     <button class="btn-cancel" style="padding:7px 16px;font-size:.85rem" onclick="closeCaseDetail()">Close</button>
   </div>`;
@@ -1445,6 +1515,7 @@ function copyCaption(caseId) {
 // NOTICE OF APPEARANCE GENERATOR
 // ═══════════════════════════════════════════════════
 let noaCaseId = null;
+let stipCaseId = null;
 
 // "Last, First" -> "First Last"; passthrough if not in that form
 function flipName(raw) {
@@ -1632,6 +1703,124 @@ function generateNoaPdf() {
   doc.save(`Notice of Appearance - ${safe}.pdf`);
   closeNoaModal();
   showToast('Notice of Appearance generated');
+}
+
+// ═══════════════════════════════════════════════════
+// STIPULATION OF SETTLEMENT GENERATOR (Word .docx)
+// ═══════════════════════════════════════════════════
+function openStipModal(caseId) {
+  const c = cases.find(x => x.id === caseId);
+  if (!c) return;
+  stipCaseId = caseId;
+
+  const partSel = document.getElementById('stip-part');
+  const partVal = (c.part || '').trim();
+  if (partVal && ![...partSel.options].some(o => o.value === partVal)) {
+    partSel.add(new Option(partVal, partVal), 0);
+  }
+  partSel.value = partVal && [...partSel.options].some(o => o.value === partVal) ? partVal : 'A';
+
+  document.getElementById('stip-index').value = c.index_number || '';
+  document.getElementById('stip-petitioner').value = c.landlord || '';
+  document.getElementById('stip-respondent').value = flipName(c.client);
+  document.getElementById('stip-occupants').value = '"John Doe", "Jane Doe"';
+  document.getElementById('stip-premises').value = '';
+  document.getElementById('stip-firm').value = c.opa || '';
+  document.getElementById('stip-opp-attorney').value = '';
+  document.getElementById('stip-date').value = longDate(new Date());
+  document.getElementById('stip-terms').value = c.stip_notes || '';
+  document.getElementById('stip-modal-overlay').style.display = 'flex';
+}
+
+function closeStipModal() {
+  document.getElementById('stip-modal-overlay').style.display = 'none';
+  stipCaseId = null;
+}
+
+async function generateStipDocx() {
+  if (!window.docx || !window.docx.Packer) { showToast('Word library not loaded'); return; }
+  const { Document, Paragraph, TextRun, Packer, Table, TableRow, TableCell, TabStopType, WidthType, BorderStyle } = window.docx;
+  const val = id => document.getElementById(id).value;
+
+  const part       = val('stip-part');
+  const index      = val('stip-index').trim();
+  const petitioner = val('stip-petitioner').trim() || 'SAMPLE PETITIONER NAME';
+  const respondent = val('stip-respondent').trim() || 'SAMPLE RESPONDENT NAME';
+  const occupants  = val('stip-occupants').trim();
+  const premises   = val('stip-premises').trim();
+  const firm       = val('stip-firm').trim() || 'Firm Name';
+  const oppAtty    = val('stip-opp-attorney').trim() || 'Attorney Name';
+  const dated      = val('stip-date').trim();
+  const terms      = val('stip-terms');
+
+  const FONT = 'Times New Roman', SZ = 24;
+  const run  = (text, opts = {}) => new TextRun({ text, font: FONT, size: SZ, ...opts });
+  const P    = (children, opts = {}) => new Paragraph({ children: Array.isArray(children) ? children : [children], ...opts });
+  const linePara = text => P([run(text)]);
+  const blank = () => P([run('')]);
+  const TAB = [{ type: TabStopType.LEFT, position: 5040 }];
+  const rule = '-'.repeat(69) + 'X';
+  const nb = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' };
+  const cellNB = { top: nb, bottom: nb, left: nb, right: nb };
+  const sigCell = lines => new TableCell({
+    width: { size: 4680, type: WidthType.DXA }, borders: cellNB,
+    children: lines.map(t => P([run(t)])),
+  });
+
+  const children = [
+    linePara('CIVIL COURT OF THE CITY OF NEW YORK'),
+    linePara(`COUNTY OF QUEENS: HOUSING PART ${part}`),
+    linePara(rule),
+    P([run(`${petitioner},`), run(`\tIndex No. ${index}`)], { tabStops: TAB }),
+    P([run('\tPetitioner/Landlord')], { tabStops: TAB }),
+    P([run('\tSTIPULATION OF SETTLEMENT')], { tabStops: TAB }),
+    linePara('- against -'),
+    blank(),
+    linePara(respondent),
+    P([run('\tRespondent(s)/Tenant(s)')], { tabStops: TAB }),
+  ];
+  if (occupants) children.push(blank(), P([run(`${occupants}\tRespondent(s)/Occupant(s)`)], { tabStops: TAB }));
+  if (premises) children.push(blank(), ...premises.split('\n').map(a => linePara(a)));
+  children.push(
+    blank(), linePara(rule), blank(),
+    linePara('IT IS HEREBY STIPULATED AND AGREED, by and between the parties, both represented by counsel as follows:'),
+    blank(),
+  );
+  (terms.trim() ? terms.split('\n') : ['XXXXXXXX']).forEach(t => children.push(linePara(t)));
+  children.push(
+    blank(), blank(),
+    linePara(`Dated: ${dated}`),
+    linePara('New York, NY'),
+    blank(), blank(),
+    new Table({
+      width: { size: 9360, type: WidthType.DXA }, columnWidths: [4680, 4680],
+      borders: { top: nb, bottom: nb, left: nb, right: nb, insideHorizontal: nb, insideVertical: nb },
+      rows: [new TableRow({ children: [
+        sigCell(['_______________________', firm, 'Attorneys for Petitioner', `By: ${oppAtty}`]),
+        sigCell(['___________________________', 'NYLAG', 'Attorneys for Respondent', 'By: Adam Coretz']),
+      ] })],
+    }),
+  );
+
+  const doc = new Document({
+    sections: [{
+      properties: { page: { size: { width: 12240, height: 15840 }, margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } } },
+      children,
+    }],
+  });
+
+  const blob = await Packer.toBlob(doc);
+  const safe = (respondent || 'Respondent').replace(/[^\w\s-]/g, '').trim() || 'Respondent';
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Stipulation of Settlement - ${safe}.docx`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  closeStipModal();
+  showToast('Stipulation of Settlement generated');
 }
 
 // ═══════════════════════════════════════════════════
@@ -3095,9 +3284,13 @@ document.getElementById('noa-add-pet').addEventListener('click', () => noaAddGro
 document.getElementById('noa-add-resp').addEventListener('click', () => noaAddGroup(document.getElementById('noa-resp-blocks'), 'noa-resp-labels'));
 document.getElementById('noa-modal-overlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeNoaModal(); });
 
+document.getElementById('stip-btn-generate').addEventListener('click', generateStipDocx);
+document.getElementById('stip-btn-cancel').addEventListener('click', closeStipModal);
+document.getElementById('stip-modal-overlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeStipModal(); });
+
 // Keyboard shortcuts
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape") { closeModal(); closeAppModal(); closeCourtModal(); closeCaseModal(); closeCaseDetail(); closeNoaModal(); }
+  if (e.key === "Escape") { closeModal(); closeAppModal(); closeCourtModal(); closeCaseModal(); closeCaseDetail(); closeNoaModal(); closeStipModal(); }
   if (e.key === "Enter" && e.metaKey) handleSave();
 });
 document.getElementById('case-detail-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeCaseDetail(); });
